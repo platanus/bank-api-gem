@@ -1,4 +1,4 @@
-require 'pincers'
+require 'timezone'
 
 require 'bank_api/clients/base_client'
 
@@ -70,8 +70,11 @@ module BankApi::Clients
     end
 
     def select_deposits_range
-      six_days_ago = (Date.today - 6).strftime("%d/%m/%Y")
-      browser.search('input[name=initDate]').set(six_days_ago)
+      timezone = Timezone['America/Santiago']
+      range_start = (
+        timezone.utc_to_local(Time.now).to_date - @days_to_check
+      ).strftime("%d/%m/%Y")
+      browser.search('input[name=initDate]').set(range_start)
     end
 
     def submit_deposits_form
