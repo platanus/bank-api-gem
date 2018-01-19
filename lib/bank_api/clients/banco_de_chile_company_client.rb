@@ -81,8 +81,15 @@ module BankApi::Clients
       browser.search('#consultar').click
     end
 
+    def any_deposits?
+      browser.search('table#sin_datos').count.zero?
+    end
+
     def extract_deposits_from_html
       deposits = []
+
+      return deposits unless any_deposits?
+
       deposit = {}
       browser.search('.linea1tabla').each_with_index do |div, index|
         if ((index - TABLE_OFFSET) % NUMBER_OF_COLUMNS) == RUT_COLUMN

@@ -62,7 +62,14 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
     allow(subject).to receive(:get_deposits)
   end
 
-  context "get_recent_deposits" do
+  def mock_site_navigation
+    allow(subject).to receive(:login)
+    allow(subject).to receive(:goto_deposits)
+    allow(subject).to receive(:select_deposits_range)
+    allow(subject).to receive(:submit_deposits_form)
+  end
+
+  describe "get_recent_deposits" do
     before do
       mock_validate_credentials
     end
@@ -110,6 +117,18 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
 
     it 'doesn\'t raise NotImplementedError' do
       expect { subject.get_recent_deposits }.not_to raise_error(NotImplementedError)
+    end
+  end
+
+  context 'with no deposits' do
+    before do
+      mock_validate_credentials
+      mock_site_navigation
+      allow(browser).to receive(:search).with('table#sin_datos').and_return(['div'])
+    end
+
+    it 'returns empty array' do
+      expect(subject.get_recent_deposits).to eq([])
     end
   end
 end
