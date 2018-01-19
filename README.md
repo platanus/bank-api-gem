@@ -1,6 +1,6 @@
 # BankApi
 
-BankApi wraps chilean banks web operations.
+BankApi is a gem that wraps chilean banks web operations. For now, it can get recent deposits on Banco de Chile accounts.
 
 ## Installation
 
@@ -20,7 +20,24 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+For now, the gem can only get recent deposits of Banco de Chile accounts (only Enterprise accounts have been tested). To add your credentials so the client can login, create the following initializer:
+
+```
+# config/initializers/bank_api.rb
+
+BankApi.configure do |config|
+  # Add the rut linked to the account
+  config.bdc_user_rut = '12345678-9'
+  # Add the account's password
+  config.bdc_password = 'secretpassword'
+  # Add the account's enterprise rut
+  config.bdc_company_rut = '98765432-1'
+  config.days_to_check = 3
+end
+
+```
+
+The days to check is set by default to 6, and can be configured as seen in the initializer.
 
 ## Development
 
