@@ -1,4 +1,5 @@
 require 'pincers'
+require 'selenium-webdriver'
 
 require 'bank_api/exceptions'
 require 'bank_api/sign_deposits'
@@ -34,7 +35,27 @@ module BankApi::Clients
     end
 
     def browser
-      @browser ||= Pincers.for_webdriver :chrome
+      @browser ||= Pincers.for_webdriver(driver)
+    end
+
+    def driver(width = 1024, heigth = 768)
+      chrome_path = ENV.fetch('GOOGLE_CHROME_SHIM', nil)
+      return :chrome unless chrome_path
+
+      chrome_opts = {
+        "chromeOptions" => {
+          "binary" => chrome_path
+        }
+      }
+
+      opts = {
+        desired_capabilities: Selenium::WebDriver::Remote::Capabilities.chrome(chrome_opts),
+        args: ['--no-sandbox', '--browsertime.xvfb']
+      }
+
+      d = Selenium::WebDriver.for(:chrome, opts)
+      d.manage.window.size = Selenium::WebDriver::Dimension.new(width, heigth)
+      d
     end
 
     def parse_entries(entries)
