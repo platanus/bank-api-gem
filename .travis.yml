@@ -1,5 +1,13 @@
 sudo: false
 language: ruby
 rvm:
-  - 2.3.3
+- 2.3.3
 before_install: gem install bundler -v 1.16.1
+deploy:
+  provider: rubygems
+  api_key:
+    secure: pG2Zh9kbXTX7ge7hz5fKZNR9rop9Fhbcm63EzVIgYmhGO9D3sCKX2WlG+s0nAGF274g9F+L6xWkdXcPkWEL1K4S1Q7QrIeN3jXfkgA4C8psBcw4t1huvU0+Ct3GZBiiiF2DphECa2ESoiLSKo99OyFXJQsOWxwqGaB9V6bA770e/j5rESzmobUHiVutXP4wHDBHMz9gVPGPNTxjubrMMNyJMx5MQkLzXuYS+YLrgyIyxPEmxdqdwfUDXVVuXj6kZaTnThXRlSbJ92Zts7vqLofgQa7huFQB44Px5ff1/TAaD0NIFEDxxmgYIvHmEhOEyIuVr8Suvo54rPiriCuXnq8RBRU1yLhUckGsRikyUfzyJMmnSiclVKFJvdjmIydxLGPN+io5CX4ygLnn4l1lRK9M7vpQIt3bC+Jegt1UEihaEJpXfqIpvUZoNioMIiKpBEtRSProgqOqEmKtwzCiCnCKaMdxydgrz0HVxwjS+zjh8H2uW6724i0lqXVTlJU8hn5IS/1OIM77RS6O+SXMYc8PoaG6rthAg+zmlt/5w+7fuN/qp2SIv0bkxk4eVtzbJuDc7qo0MWJUCMGLZUJ/IXEBGHJCwX4ZyKHdnQRWVItT4NOjOwKi8TKsNvBgJkzF4K9yNHg+dJT6Sjjidrxh3EnG93nmxjSTE1HZ8grrF+sw=
+  gem: bank-api
+  on:
+    tags: true
+    repo: platanus/bank-api-gem
