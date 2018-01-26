@@ -39,7 +39,7 @@ module BankApi::Clients
     end
 
     def driver(width = 1024, heigth = 768)
-      chrome_path = ENV.fetch('GOOGLE_CHROME_SHIM', nil)
+      chrome_path = ENV.fetch('GOOGLE_CHROME_BIN_PATH', nil)
       return :chrome unless chrome_path
 
       chrome_opts = {
