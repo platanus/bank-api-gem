@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    bank_api (0.1.0)
+    bank_api (0.1.2)
       pincers
       timezone (~> 1.0)
 
@@ -28,7 +28,7 @@ GEM
       rspec-core (~> 3.7.0)
       rspec-expectations (~> 3.7.0)
       rspec-mocks (~> 3.7.0)
-    rspec-core (3.7.0)
+    rspec-core (3.7.1)
       rspec-support (~> 3.7.0)
     rspec-expectations (3.7.0)
       diff-lcs (>= 1.2.0, < 2.0)

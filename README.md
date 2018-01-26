@@ -49,7 +49,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 1. Add https://github.com/heroku/heroku-buildpack-chromedriver.git buildpack.
 2. Add https://github.com/kevinsawicki/heroku-buildpack-xvfb-google-chrome.git buildpack.
-3. Set `'GOOGLE_CHROME_SHIM'` env var with value `"/app/.apt/usr/bin/google-chrome-stable"`
+3. Set `'GOOGLE_CHROME_BIN_PATH'` env var with value `"/app/.apt/usr/bin/google-chrome-stable"`
 
 ## Contributing
 
