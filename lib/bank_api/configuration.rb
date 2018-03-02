@@ -9,5 +9,9 @@ module BankApi
 
       @days_to_check = 6
     end
+
+    def banco_security
+      @banco_security ||= BankApi::Configs::BancoSecurity.new
+    end
   end
 end

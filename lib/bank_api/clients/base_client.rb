@@ -35,7 +35,11 @@ module BankApi::Clients
     end
 
     def browser
-      @browser ||= Pincers.for_webdriver(driver)
+      @browser ||= Pincers.for_webdriver(driver, wait_timeout: 35.0)
+    end
+
+    def selenium_browser
+      @browser.document
     end
 
     def driver(width = 1024, heigth = 768)
@@ -56,6 +60,19 @@ module BankApi::Clients
       d = Selenium::WebDriver.for(:chrome, opts)
       d.manage.window.size = Selenium::WebDriver::Dimension.new(width, heigth)
       d
+    end
+
+    def wait(query)
+      count = 0
+      timeout = browser.config[:wait_timeout]
+      interval = browser.config[:wait_interval]
+      fulfilled = false
+      while !fulfilled && count < timeout
+        fulfilled = block_given? ? yield : browser.search(query).any?
+        sleep interval
+        count += interval
+      end
+      browser.search(query)
     end
 
     def parse_entries(entries)
