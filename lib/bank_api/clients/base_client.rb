@@ -16,6 +16,20 @@ module BankApi::Clients
       parse_entries(get_deposits)
     end
 
+    def transfer(transfer_data)
+      validate_transfer_missing_data(transfer_data)
+      validate_transfer_valid_data(transfer_data)
+      execute_transfer(transfer_data)
+    end
+
+    def batch_transfers(transfers_data)
+      transfers_data.each do |transfer_data|
+        validate_transfer_missing_data(transfer_data)
+        validate_transfer_valid_data(transfer_data)
+      end
+      execute_batch_transfers
+    end
+
     private
 
     def validate_credentials
