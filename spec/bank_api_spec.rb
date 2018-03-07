@@ -9,4 +9,11 @@ RSpec.describe BankApi do
 
     BankApi.get_bdc_recent_company_deposits
   end
+
+  it 'calls BancoSecurity::CompanyClient' do
+    expect_any_instance_of(BankApi::Clients::BancoSecurity::CompanyClient)
+      .to receive(:get_recent_deposits)
+
+    BankApi::BancoSecurity.get_recent_company_deposits
+  end
 end
