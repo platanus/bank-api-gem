@@ -26,7 +26,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     ].map { |t| double(text: t) }
   end
 
-  let(:div) { double }
+  let(:div) { double(text: 'text') }
 
   let(:browser) do
     double(
@@ -37,10 +37,19 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     )
   end
 
+  let(:selenium_browser) { double }
+
+  let(:dynamic_card) { double }
+
   let (:subject) do
     described_class.new(
       double(
-        banco_security: double(user_rut: '', 'password': '', company_rut: ''),
+        banco_security: double(
+          user_rut: '',
+          password: '',
+          company_rut: '',
+          dynamic_card:  dynamic_card
+        ),
         days_to_check: 6
       )
     )
@@ -48,6 +57,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
   before do
     allow(subject).to receive(:browser).and_return(browser)
+    allow(subject).to receive(:selenium_browser).and_return(selenium_browser)
 
     allow(browser).to receive(:goto)
     allow(browser).to receive(:close)
@@ -56,29 +66,35 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
     allow(div).to receive(:click)
     allow(div).to receive(:set)
+    allow(div).to receive(:any?).and_return(true)
+    allow(div).to receive(:count).and_return(1)
+
+    allow(dynamic_card).to receive(:get_coordinate_value).and_return('11')
+
+    allow(selenium_browser).to receive(:execute_script)
   end
 
   def mock_validate_credentials
     allow(subject).to receive(:validate_credentials)
   end
 
-  def mock_get_deposits
-    allow(subject).to receive(:get_deposits)
-  end
-
-  def mock_site_navigation
-    allow(subject).to receive(:login)
-    allow(subject).to receive(:goto_company_dashboard)
-    allow(subject).to receive(:goto_deposits)
-    allow(subject).to receive(:select_deposits_range)
-  end
-
   describe "get_recent_deposits" do
+    def mock_get_deposits
+      allow(subject).to receive(:get_deposits)
+    end
+
+    def mock_site_navigation
+      allow(subject).to receive(:login)
+      allow(subject).to receive(:goto_company_dashboard)
+      allow(subject).to receive(:goto_deposits)
+      allow(subject).to receive(:select_deposits_range)
+    end
+
     before do
       mock_validate_credentials
     end
 
-    fit 'validates and returns entries on get_recent_deposits' do
+    it 'validates and returns entries on get_recent_deposits' do
       expect(subject).to receive(:validate_credentials)
       expect(subject).to receive(:get_deposits).and_return(
         [
@@ -102,37 +118,211 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
       subject.get_recent_deposits
     end
-  end
 
-  context 'validate_credentials implementation' do
-    before do
-      mock_get_deposits
+    context 'validate_credentials implementation' do
+      before do
+        mock_get_deposits
+      end
+
+      it "doesn't raise NotImplementedError" do
+        expect { subject.get_recent_deposits }.not_to raise_error(NotImplementedError)
+      end
     end
 
-    it 'doesn\'t raise NotImplementedError' do
-      expect { subject.get_recent_deposits }.not_to raise_error(NotImplementedError)
+    context 'get_deposits implementation' do
+      before do
+        mock_validate_credentials
+      end
+
+      it "doesn't raise NotImplementedError" do
+        expect { subject.get_recent_deposits }.not_to raise_error(NotImplementedError)
+      end
+    end
+
+    context 'with no deposits' do
+      before do
+        mock_validate_credentials
+        mock_site_navigation
+        allow(subject).to receive(:any_deposits?).and_return(false)
+      end
+
+      it 'returns empty array' do
+        expect(subject.get_recent_deposits).to eq([])
+      end
     end
   end
 
-  context 'get_deposits implementation' do
+  describe "#transfer" do
+    def mock_validate_transfer_missing_data
+      allow(subject).to receive(:validate_transfer_missing_data)
+    end
+
+    def mock_validate_transfer_valid_data
+      allow(subject).to receive(:validate_transfer_valid_data)
+    end
+
+    def mock_execute_transfer
+      allow(subject).to receive(:execute_transfer)
+    end
+
+    def mock_site_navigation
+      allow(subject).to receive(:login)
+      allow(subject).to receive(:goto_company_dashboard)
+      allow(subject).to receive(:goto_transfer_form)
+      allow(subject).to receive(:submit_transfer_form)
+    end
+
+    let(:transfer_data) do
+      {
+        amount: 10000,
+        name: "John Doe",
+        rut: "32.165.498-7",
+        account_number: "11111111",
+        bank: :banco_estado,
+        account_type: :cuenta_corriente,
+        email: "doe@platan.us",
+        comment: "Comment"
+      }
+    end
+
     before do
       mock_validate_credentials
-    end
-
-    it 'doesn\'t raise NotImplementedError' do
-      expect { subject.get_recent_deposits }.not_to raise_error(NotImplementedError)
-    end
-  end
-
-  context 'with no deposits' do
-    before do
-      mock_validate_credentials
+      mock_validate_transfer_missing_data
+      mock_validate_transfer_valid_data
       mock_site_navigation
-      allow(subject).to receive(:any_deposits?).and_return(false)
     end
 
-    it 'returns empty array' do
-      expect(subject.get_recent_deposits).to eq([])
+    it "validates and returns calls executer_transfer" do
+      expect(subject).to receive(:validate_credentials)
+      expect(subject).to receive(:validate_transfer_missing_data).with(transfer_data)
+      expect(subject).to receive(:validate_transfer_valid_data).with(transfer_data)
+      expect(subject).to receive(:execute_transfer).with(transfer_data)
+
+      subject.transfer(transfer_data)
+    end
+
+    context "with origin in transfer_data" do
+      it "prioritizes transfer's origin over @company_rut" do
+        expect(subject).to receive(:goto_company_dashboard).with('54.987.123-6')
+
+        subject.transfer(transfer_data.merge(origin: '54.987.123-6'))
+      end
+    end
+
+    context "without origin in transfer_data" do
+      it "goes to @company_rut's dashboard" do
+        expect(subject).to receive(:goto_company_dashboard).with('')
+
+        subject.transfer(transfer_data)
+      end
+    end
+
+    it "calls submit_transfer_form with transfer_data" do
+      expect(subject).to receive(:submit_transfer_form).with(transfer_data)
+
+      subject.transfer(transfer_data)
+    end
+
+    it "calls fill_coordinates" do
+      expect(subject).to receive(:fill_coordinates)
+
+      subject.transfer(transfer_data)
+    end
+  end
+
+  describe "#batch_transfers" do
+    def mock_validate_transfer_missing_data
+      allow(subject).to receive(:validate_transfer_missing_data)
+    end
+
+    def mock_validate_transfer_valid_data
+      allow(subject).to receive(:validate_transfer_valid_data)
+    end
+
+    def mock_execute_transfer
+      allow(subject).to receive(:execute_transfer)
+    end
+
+    def mock_site_navigation
+      allow(subject).to receive(:login)
+      allow(subject).to receive(:goto_company_dashboard)
+      allow(subject).to receive(:goto_transfer_form)
+      allow(subject).to receive(:submit_transfer_form)
+    end
+
+    let(:transfers_data) do
+      [
+        {
+          amount: 10000,
+          name: "John Doe",
+          rut: "32.165.498-7",
+          account_number: "11111111",
+          bank: :banco_estado,
+          account_type: :cuenta_corriente,
+          email: "doe@platan.us",
+          comment: "Comment"
+        },
+        {
+          amount: 20000,
+          name: "John Does",
+          rut: "54.123.789-6",
+          account_number: "11111111",
+          bank: :banco_estado,
+          account_type: :cuenta_vista,
+          email: "does@platan.us",
+          comment: "Comment"
+        }
+      ]
+    end
+
+    before do
+      mock_validate_credentials
+      mock_validate_transfer_missing_data
+      mock_validate_transfer_valid_data
+      mock_site_navigation
+    end
+
+    it "validates and returns calls executer_transfer" do
+      expect(subject).to receive(:validate_credentials)
+      transfers_data.each do |transfer_data|
+        expect(subject).to receive(:validate_transfer_missing_data).with(transfer_data)
+        expect(subject).to receive(:validate_transfer_valid_data).with(transfer_data)
+      end
+      expect(subject).to receive(:execute_batch_transfers).with(transfers_data)
+
+      subject.batch_transfers(transfers_data)
+    end
+
+    context "with origin in transfer_data" do
+      it "prioritizes transfer's origin over @company_rut" do
+        expect(subject).to receive(:goto_company_dashboard).with('54.987.123-6').exactly(2).times
+
+        subject.batch_transfers(
+          transfers_data.map { |transfer_data| transfer_data.merge(origin: '54.987.123-6') }
+        )
+      end
+    end
+
+    context "without origin in transfer_data" do
+      it "goes to @company_rut's dashboard" do
+        expect(subject).to receive(:goto_company_dashboard).with('').exactly(2).times
+
+        subject.batch_transfers(transfers_data)
+      end
+    end
+
+    it "calls submit_transfer_form with transfer_data" do
+      transfers_data.each do |transfer_data|
+        expect(subject).to receive(:submit_transfer_form).with(transfer_data)
+      end
+
+      subject.batch_transfers(transfers_data)
+    end
+
+    it "calls fill_coordinates" do
+      expect(subject).to receive(:fill_coordinates).exactly(2).times
+
+      subject.batch_transfers(transfers_data)
     end
   end
 end
