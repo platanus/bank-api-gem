@@ -90,6 +90,18 @@ module BankApi::Clients
 
       return deposits unless any_deposits?
 
+      deposits += deposits_from_page
+
+      ((total_results - 1) / 10).times do
+        goto_next_page
+        deposits += deposits_from_page
+      end
+
+      deposits.sort_by { |d| d[:date] }
+    end
+
+    def deposits_from_page
+      deposits = []
       deposit = {}
       browser.search('.linea1tabla').each_with_index do |div, index|
         if ((index - TABLE_OFFSET) % NUMBER_OF_COLUMNS) == RUT_COLUMN
@@ -104,6 +116,15 @@ module BankApi::Clients
         end
       end
       deposits
+    end
+
+    def goto_next_page
+      browser.search("#pager .next").click
+    end
+
+    def total_results
+      browser.search("#pager .encabezadotabla:contains(\"Operaciones encontradas\")")
+             .text[/\d+/].to_i
     end
   end
 end
