@@ -47,8 +47,8 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
 
     allow(browser).to receive(:goto)
     allow(browser).to receive(:close)
-    allow(browser).to receive(:search).with('.linea1tabla').and_return(lines)
     allow(browser).to receive(:search).and_return(div)
+    allow(browser).to receive(:search).with('.linea1tabla').and_return(lines)
 
     allow(div).to receive(:click)
     allow(div).to receive(:set)
@@ -129,6 +129,21 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
 
     it 'returns empty array' do
       expect(subject.get_recent_deposits).to eq([])
+    end
+  end
+
+  context "with pagination" do
+    before do
+      mock_validate_credentials
+      mock_site_navigation
+      expect(subject).to receive(:any_deposits?).and_return(true)
+      expect(subject).to receive(:total_results).and_return(30)
+    end
+
+    it "goes through every page" do
+      expect(subject).to receive(:goto_next_page).exactly(2).times
+
+      subject.get_recent_deposits
     end
   end
 end
