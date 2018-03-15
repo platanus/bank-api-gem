@@ -24,7 +24,7 @@ module BankApi::Clients::BancoSecurity
       goto_company_dashboard
       goto_deposits
       select_deposits_range
-      deposits = any_deposits? ? extract_deposits_from_html : []
+      deposits = extract_deposits_from_html
       browser.close
       deposits
     end
@@ -108,6 +108,21 @@ module BankApi::Clients::BancoSecurity
 
     def extract_deposits_from_html
       deposits = []
+
+      return deposits unless any_deposits?
+
+      deposits += deposits_from_page
+
+      ((total_results - 1) / 50).times do
+        goto_next_page
+        deposits += deposits_from_page
+      end
+
+      deposits.sort_by { |d| d[:date] }
+    end
+
+    def deposits_from_page
+      deposits = []
       deposit = {}
       browser.search('#gridPrincipalRecibidas tbody td').each_with_index do |div, index|
         if (index % NUMBER_OF_COLUMNS) == RUT_COLUMN
@@ -122,6 +137,15 @@ module BankApi::Clients::BancoSecurity
         end
       end
       deposits
+    end
+
+    def goto_next_page
+      browser.search('#gridPrincipalRecibidas a.k-link[title="Go to the next page"]').click
+    end
+
+    def total_results
+      browser.search('#gridPrincipalRecibidas .k-pager-info')
+             .text.scan(/\d+/).last.to_i
     end
 
     def deposit_range
