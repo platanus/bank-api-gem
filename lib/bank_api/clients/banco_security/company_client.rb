@@ -19,6 +19,10 @@ module BankApi::Clients::BancoSecurity
       super
     end
 
+    def bank_name
+      :security
+    end
+
     def get_deposits
       login
       goto_company_dashboard

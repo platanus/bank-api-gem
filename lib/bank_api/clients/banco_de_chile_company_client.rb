@@ -23,6 +23,10 @@ module BankApi::Clients
       super
     end
 
+    def bank_name
+      :bancochile
+    end
+
     private
 
     def validate_credentials

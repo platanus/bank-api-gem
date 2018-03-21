@@ -2,7 +2,13 @@ require 'date'
 require 'spec_helper'
 
 RSpec.describe BankApi::SignDeposits do
-  let(:entries) { [BankApi::Values::DepositEntry.new(25000, Date.new(2017, 3, 3), '12345678-9')] }
+  let(:entries) do
+    [
+      BankApi::Values::DepositEntry.new(
+        25000, Date.new(2017, 3, 3), '12345678-9', :security
+      )
+    ]
+  end
 
   context 'with a single entry' do
     it 'calculates the corresponding signature' do
@@ -13,7 +19,9 @@ RSpec.describe BankApi::SignDeposits do
 
   context 'with entries with same data' do
     before do
-      entries << BankApi::Values::DepositEntry.new(25000, Date.new(2017, 3, 3), '12345678-9')
+      entries << BankApi::Values::DepositEntry.new(
+        25000, Date.new(2017, 3, 3), '12345678-9', :security
+      )
     end
 
     it 'calculates different signature' do
