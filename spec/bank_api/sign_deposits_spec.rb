@@ -10,10 +10,14 @@ RSpec.describe BankApi::SignDeposits do
     ]
   end
 
+  let(:expected_signature) { '6e652e430638ab1c6fa631553c21344972017c48666' }
+
+  before { allow(Time).to receive(:now).and_return(666) }
+
   context 'with a single entry' do
     it 'calculates the corresponding signature' do
       BankApi::SignDeposits.sign(entries)
-      expect(entries[0].signature).to eq('d304467760d30830cc339127b47fc36bdbc20999')
+      expect(entries[0].signature).to eq(expected_signature)
     end
   end
 
@@ -26,8 +30,8 @@ RSpec.describe BankApi::SignDeposits do
 
     it 'calculates different signature' do
       BankApi::SignDeposits.sign(entries)
-      expect(entries[0].signature).to eq('d304467760d30830cc339127b47fc36bdbc20999')
-      expect(entries[1].signature).not_to eq('d304467760d30830cc339127b47fc36bdbc20999')
+      expect(entries[0].signature).to eq(expected_signature)
+      expect(entries[1].signature).not_to eq(expected_signature)
     end
   end
 end
