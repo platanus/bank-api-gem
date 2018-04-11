@@ -35,10 +35,10 @@ module BankApi::SignDeposits
 
   def entry_signature(entry, occurrencies)
     key = entry_key(entry)
-    Digest::SHA1.hexdigest("#{key}|#{occurrencies}")
+    Digest::SHA1.hexdigest("#{key}|#{occurrencies}") + Time.now.to_i.to_s
   end
 
   def entry_key(entry)
-    "#{entry.amount}|#{entry.date}|#{entry.rut}"
+    "#{entry.amount}|#{entry.date}|#{entry.rut}|#{entry.bank}"
   end
 end

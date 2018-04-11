@@ -20,24 +20,77 @@ Or install it yourself as:
 
 ## Usage
 
-For now, the gem can only get recent deposits of Banco de Chile accounts (only Enterprise accounts have been tested). To add your credentials so the client can login, create the following initializer:
+For now, the gem can get recent deposits of Banco de Chile accounts (only Enterprise accounts have been tested) and BancoSecurity's accounts. To add your credentials so the client can login, create the following initializer:
 
 ```
 # config/initializers/bank_api.rb
 
 BankApi.configure do |config|
-  # Add the rut linked to the account
+  # Banco de Chile config
   config.bdc_user_rut = '12345678-9'
   # Add the account's password
   config.bdc_password = 'secretpassword'
-  # Add the account's enterprise rut
   config.bdc_company_rut = '98765432-1'
+
+  # Deposits config
   config.days_to_check = 3
+
+  # BancoSecurity config
+  config.banco_security.user_rut = '12345678-9'
+  config.banco_security.password = 'secretpassword'
+  config.banco_security.company_rut = '98765432-1'
+  config.banco_security.dynamic_card_entries = "[['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10'], ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10'], ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10'], ['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10'], ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'E8', 'E9', 'E10']]"
 end
 
 ```
 
 The days to check is set by default to 6, and can be configured as seen in the initializer.
+
+For BancoSecurity's account there's also de posibility to make transfers to third party's accounts using the dynamic card. To use this feature, you must specify the `dynamic_card_entries` variable in the config, then call:
+
+```
+  BankApi.company_transfer({
+    amount: 1000,
+    name: "John Doe",
+    rut: "12.345.678-9",
+    account_number: "11111111",
+    bank: :banco_estado,
+    account_type: :cuenta_corriente,
+    email: "doe@platan.us",
+    comment: "This is a comment",
+    origin: "9.876.543-2"
+  })
+```
+
+If you don't setup the origin on the transfer's data, the default'll be `config.banco_security.company_rut`. You can also make transfers on batches:
+
+```
+  BankApi.company_batch_transfers([
+    {
+      amount: 1000,
+      name: "John Doe",
+      rut: "12.345.678-9",
+      account_number: "11111111",
+      bank: :banco_estado,
+      account_type: :cuenta_corriente,
+      email: "doe@platan.us",
+      comment: "This is a comment",
+      origin: "9.876.543-2"
+    }, {
+      amount: 2000,
+      name: "John Does",
+      rut: "12.345.678-9",
+      account_number: "11111111",
+      bank: :banco_estado,
+      account_type: :cuenta_corriente,
+      email: "does@platan.us",
+      comment: "This is a comment",
+      origin: "9.876.543-2"
+    }
+  ])
+```
+
+Checkout the available banks and account types in [this file](./lib/bank_api/utils/banco_security.rb).
 
 ## Development
 

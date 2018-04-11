@@ -16,13 +16,49 @@ module BankApi::Clients
       parse_entries(get_deposits)
     end
 
+    def transfer(transfer_data)
+      validate_credentials
+      validate_transfer_missing_data(transfer_data)
+      validate_transfer_valid_data(transfer_data)
+      execute_transfer(transfer_data)
+    end
+
+    def batch_transfers(transfers_data)
+      validate_credentials
+      transfers_data.each do |transfer_data|
+        validate_transfer_missing_data(transfer_data)
+        validate_transfer_valid_data(transfer_data)
+      end
+      execute_batch_transfers(transfers_data)
+    end
+
     private
+
+    def bank_name
+      raise NotImplementedError
+    end
 
     def validate_credentials
       raise NotImplementedError
     end
 
     def get_deposits
+      raise NotImplementedError
+    end
+
+    def validate_transfer_missing_data(_transfer_data)
+      raise NotImplementedError
+    end
+
+    def validate_transfer_valid_data(_transfer_data)
+      raise NotImplementedError
+    end
+
+    def execute_transfer(_transfer_data)
+      raise NotImplementedError
+    end
+
+    def execute_batch_transfers(_transfers_data)
       raise NotImplementedError
     end
 
@@ -75,12 +111,19 @@ module BankApi::Clients
       browser.search(query)
     end
 
+    def goto_frame(query: nil, should_reset: true)
+      browser.goto frame: :top if should_reset
+      frame = wait(query) if query
+      browser.goto(frame: frame)
+    end
+
     def parse_entries(entries)
       deposit_entries = entries.map do |entry|
         BankApi::Values::DepositEntry.new(
           entry[:amount],
           entry[:date],
-          entry[:rut]
+          entry[:rut],
+          bank_name
         )
       end
       BankApi::SignDeposits.sign(deposit_entries)
