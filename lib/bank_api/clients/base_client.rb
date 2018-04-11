@@ -34,6 +34,10 @@ module BankApi::Clients
 
     private
 
+    def bank_name
+      raise NotImplementedError
+    end
+
     def validate_credentials
       raise NotImplementedError
     end
@@ -118,7 +122,8 @@ module BankApi::Clients
         BankApi::Values::DepositEntry.new(
           entry[:amount],
           entry[:date],
-          entry[:rut]
+          entry[:rut],
+          bank_name
         )
       end
       BankApi::SignDeposits.sign(deposit_entries)
