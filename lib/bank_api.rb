@@ -29,5 +29,14 @@ module BankApi
     def self.get_recent_company_deposits
       Clients::BancoSecurity::CompanyClient.new(BankApi.configuration).get_recent_deposits
     end
+
+    def self.company_transfer(transfer_data)
+      Clients::BancoSecurity::CompanyClient.new(BankApi.configuration).transfer(transfer_data)
+    end
+
+    def self.company_batch_transfers(transfers_data)
+      Clients::BancoSecurity::CompanyClient.new(BankApi.configuration)
+                                           .batch_transfers(transfers_data)
+    end
   end
 end
