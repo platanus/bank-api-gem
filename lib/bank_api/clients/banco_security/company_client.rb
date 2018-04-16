@@ -31,7 +31,7 @@ module BankApi::Clients::BancoSecurity
       goto_company_dashboard
       goto_deposits
       select_deposits_range
-      deposits = any_deposits? ? extract_deposits_from_html : []
+      deposits = extract_deposits_from_html
       browser.close
       deposits
     end

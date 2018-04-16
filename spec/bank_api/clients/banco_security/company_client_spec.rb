@@ -61,8 +61,8 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
     allow(browser).to receive(:goto)
     allow(browser).to receive(:close)
-    allow(browser).to receive(:search).with('#gridPrincipalRecibidas tbody td').and_return(lines)
     allow(browser).to receive(:search).and_return(div)
+    allow(browser).to receive(:search).with('#gridPrincipalRecibidas tbody td').and_return(lines)
 
     allow(div).to receive(:click)
     allow(div).to receive(:set)
@@ -78,18 +78,30 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     allow(subject).to receive(:validate_credentials)
   end
 
+  def mock_validate_transfer_missing_data
+    allow(subject).to receive(:validate_transfer_missing_data)
+  end
+
+  def mock_validate_transfer_valid_data
+    allow(subject).to receive(:validate_transfer_valid_data)
+  end
+
+  def mock_execute_transfer
+    allow(subject).to receive(:execute_transfer)
+  end
+
+  def mock_site_navigation
+    allow(subject).to receive(:login)
+    allow(subject).to receive(:goto_company_dashboard)
+    allow(subject).to receive(:goto_transfer_form)
+    allow(subject).to receive(:submit_transfer_form)
+  end
+
+  def mock_get_deposits
+    allow(subject).to receive(:get_deposits)
+  end
+
   describe "get_recent_deposits" do
-    def mock_get_deposits
-      allow(subject).to receive(:get_deposits)
-    end
-
-    def mock_site_navigation
-      allow(subject).to receive(:login)
-      allow(subject).to receive(:goto_company_dashboard)
-      allow(subject).to receive(:goto_deposits)
-      allow(subject).to receive(:select_deposits_range)
-    end
-
     before do
       mock_validate_credentials
     end
@@ -153,25 +165,6 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
   end
 
   describe "#transfer" do
-    def mock_validate_transfer_missing_data
-      allow(subject).to receive(:validate_transfer_missing_data)
-    end
-
-    def mock_validate_transfer_valid_data
-      allow(subject).to receive(:validate_transfer_valid_data)
-    end
-
-    def mock_execute_transfer
-      allow(subject).to receive(:execute_transfer)
-    end
-
-    def mock_site_navigation
-      allow(subject).to receive(:login)
-      allow(subject).to receive(:goto_company_dashboard)
-      allow(subject).to receive(:goto_transfer_form)
-      allow(subject).to receive(:submit_transfer_form)
-    end
-
     let(:transfer_data) do
       {
         amount: 10000,
@@ -231,25 +224,6 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
   end
 
   describe "#batch_transfers" do
-    def mock_validate_transfer_missing_data
-      allow(subject).to receive(:validate_transfer_missing_data)
-    end
-
-    def mock_validate_transfer_valid_data
-      allow(subject).to receive(:validate_transfer_valid_data)
-    end
-
-    def mock_execute_transfer
-      allow(subject).to receive(:execute_transfer)
-    end
-
-    def mock_site_navigation
-      allow(subject).to receive(:login)
-      allow(subject).to receive(:goto_company_dashboard)
-      allow(subject).to receive(:goto_transfer_form)
-      allow(subject).to receive(:submit_transfer_form)
-    end
-
     let(:transfers_data) do
       [
         {
@@ -323,6 +297,21 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       expect(subject).to receive(:fill_coordinates).exactly(2).times
 
       subject.batch_transfers(transfers_data)
+    end
+  end
+
+  context "with pagination" do
+    before do
+      mock_validate_credentials
+      mock_site_navigation
+      expect(subject).to receive(:any_deposits?).and_return(true)
+      expect(subject).to receive(:total_results).and_return(150)
+    end
+
+    it "goes through every page" do
+      expect(subject).to receive(:goto_next_page).exactly(2).times
+
+      subject.get_recent_deposits
     end
   end
 end

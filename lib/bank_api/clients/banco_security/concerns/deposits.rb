@@ -1,3 +1,4 @@
+# coding: utf-8
 module BankApi::Clients::BancoSecurity
   module Deposits
     DATE_COLUMN = 0
@@ -23,6 +24,21 @@ module BankApi::Clients::BancoSecurity
 
     def extract_deposits_from_html
       deposits = []
+
+      return deposits unless any_deposits?
+
+      deposits += deposits_from_page
+
+      ((total_results - 1) / 50).times do
+        goto_next_page
+        deposits += deposits_from_page
+      end
+
+      deposits.sort_by { |d| d[:date] }
+    end
+
+    def deposits_from_page
+      deposits = []
       deposit = {}
       browser.search('#gridPrincipalRecibidas tbody td').each_with_index do |div, index|
         if (index % NUMBER_OF_COLUMNS) == RUT_COLUMN
@@ -39,6 +55,10 @@ module BankApi::Clients::BancoSecurity
       deposits
     end
 
+    def goto_next_page
+      browser.search('#gridPrincipalRecibidas a.k-link[title="Go to the next page"]').click
+    end
+
     def deposit_range
       @deposit_range ||= begin
         timezone = Timezone['America/Santiago']
@@ -53,6 +73,11 @@ module BankApi::Clients::BancoSecurity
       browser.search(
         ".k-label:contains('No se han encontrado transacciones para la búsqueda seleccionada.')"
       ).any?
+    end
+
+    def total_results
+      browser.search('#gridPrincipalRecibidas .k-pager-info')
+             .text.scan(/\d+/).last.to_i
     end
   end
 end
