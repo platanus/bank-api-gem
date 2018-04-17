@@ -35,6 +35,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
     allow(browser).to receive(:search).with('#gridPrincipalRecibidas tbody td').and_return(lines)
     allow(browser).to receive(:goto)
     allow(div).to receive(:any?).and_return(true)
+    allow(div).to receive(:none?).and_return(true)
     allow(div).to receive(:count).and_return(1)
     allow(div).to receive(:click)
     allow(div).to receive(:set)
