@@ -1,4 +1,5 @@
 # coding: utf-8
+
 module BankApi::Clients::BancoSecurity
   module Deposits
     DATE_COLUMN = 0
@@ -19,6 +20,7 @@ module BankApi::Clients::BancoSecurity
     def wait_for_deposits_fetch
       goto_frame query: '#mainFrame'
       goto_frame query: 'iframe[name="central"]', should_reset: false
+      sleep 0.5
       wait('.k-loading-image') { browser.search('.k-loading-image').count.zero? }
     end
 
@@ -72,7 +74,7 @@ module BankApi::Clients::BancoSecurity
     def any_deposits?
       browser.search(
         ".k-label:contains('No se han encontrado transacciones para la búsqueda seleccionada.')"
-      ).any?
+      ).none?
     end
 
     def total_results
