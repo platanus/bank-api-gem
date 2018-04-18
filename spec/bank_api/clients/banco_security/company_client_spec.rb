@@ -305,7 +305,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       mock_validate_credentials
       mock_site_navigation
       expect(subject).to receive(:any_deposits?).and_return(true)
-      expect(subject).to receive(:total_results).and_return(150)
+      expect(subject).to receive(:total_results).and_return(90)
     end
 
     it "goes through every page" do
