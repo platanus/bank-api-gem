@@ -7,6 +7,7 @@ module BankApi::Clients::BancoSecurity
     AMOUNT_COLUMN = 5
 
     NUMBER_OF_COLUMNS = 7
+    DEFAULT_PAGINATION = 30
 
     def select_deposits_range
       browser.search('.BusquedaPorDefectoRecibida a:contains("búsqueda avanzada")').click
@@ -31,7 +32,7 @@ module BankApi::Clients::BancoSecurity
 
       deposits += deposits_from_page
 
-      ((total_results - 1) / 50).times do
+      ((total_results - 1) / DEFAULT_PAGINATION).times do
         goto_next_page
         deposits += deposits_from_page
       end
