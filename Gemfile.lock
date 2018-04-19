@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    bank_api (0.2.3)
+    bank_api (0.2.5)
       pincers
       timezone (~> 1.0)
 
@@ -46,7 +46,7 @@ GEM
       childprocess (~> 0.5)
       rubyzip (~> 1.0)
       websocket (~> 1.0)
-    timezone (1.2.10)
+    timezone (1.2.11)
     websocket (1.2.5)
 
 PLATFORMS
