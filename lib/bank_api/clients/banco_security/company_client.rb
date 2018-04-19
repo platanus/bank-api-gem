@@ -19,6 +19,7 @@ module BankApi::Clients::BancoSecurity
       @password = config.banco_security.password
       @company_rut = config.banco_security.company_rut
       @dynamic_card = config.banco_security.dynamic_card
+      @page_size = config.banco_security.page_size
       super
     end
 

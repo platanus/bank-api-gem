@@ -14,14 +14,19 @@ module BankApi::Clients::BancoSecurity
       browser.search('#datePickerInicioRecibidas').set deposit_range[:start]
       browser.search('#datePickerFinRecibido').set deposit_range[:end]
       browser.search('.ContenedorSubmitRecibidas .btn_buscar').click
+      set_page_size
       wait_for_deposits_fetch
     end
 
     def wait_for_deposits_fetch
       goto_frame query: '#mainFrame'
       goto_frame query: 'iframe[name="central"]', should_reset: false
-      sleep 0.5
-      wait('.k-loading-image') { browser.search('.k-loading-image').count.zero? }
+      wait('.k-loading-image') { browser.search('.k-loading-image').any? }
+      wait('.k-loading-image') { browser.search('.k-loading-image').none? }
+    end
+
+    def wait_for_next_page(last_seen_deposit)
+      wait(".k-pager-info") { last_seen_deposit < last_deposit_in_current_page }
     end
 
     def extract_deposits_from_html
@@ -30,11 +35,16 @@ module BankApi::Clients::BancoSecurity
       return deposits unless any_deposits?
 
       deposits += deposits_from_page
-
-      ((total_results - 1) / 50).times do
+      last_seen_deposit = last_deposit_in_current_page
+      ((total_deposits - 1) / @page_size).times do
         goto_next_page
+        wait_for_next_page(last_seen_deposit)
+        last_seen_deposit = last_deposit_in_current_page
+
         deposits += deposits_from_page
       end
+
+      validate_deposits(deposits, last_seen_deposit)
 
       deposits.sort_by { |d| d[:date] }
     end
@@ -57,6 +67,28 @@ module BankApi::Clients::BancoSecurity
       deposits
     end
 
+    def set_page_size
+      browser.search('[aria-owns="pagerSettingRecibidas_listbox"]').click
+      sleep 0.1
+      browser.search('.k-animation-container.km-popup li').find do |li|
+        li.text == @page_size.to_s
+      end.click
+      wait('.k-loading-image') { browser.search('.k-loading-image').any? }
+      wait('.k-loading-image') { browser.search('.k-loading-image').none? }
+    end
+
+    def last_deposit_in_current_page
+      pages_info = wait(".k-pager-info")
+      matches = pages_info.text.match(/(\d+)[a-z\s-]+(\d+)[a-z\s-]+(\d+)/)
+      matches[2].to_i
+    end
+
+    def total_deposits
+      pages_info = wait(".k-pager-info")
+      matches = pages_info.text.match(/(\d+)[a-z\s-]+(\d+)[a-z\s-]+(\d+)/)
+      matches[3].to_i
+    end
+
     def goto_next_page
       browser.search('#gridPrincipalRecibidas a.k-link[title="Go to the next page"]').click
     end
@@ -77,9 +109,17 @@ module BankApi::Clients::BancoSecurity
       ).none?
     end
 
-    def total_results
-      browser.search('#gridPrincipalRecibidas .k-pager-info')
-             .text.scan(/\d+/).last.to_i
+    def validate_deposits(deposits, last_seen_deposit)
+      total_deposits_ = total_deposits
+      unless deposits.count == total_deposits_
+        raise BankApi::Deposit::QuantityError, "Expected #{total_deposits_} deposits," +
+          " got #{deposits.count}."
+      end
+
+      unless last_seen_deposit == total_deposits_
+        raise BankApi::Deposit::PaginationError, "Expected to fetch #{total_deposits_} deposits," +
+          " the last seen deposit was nº #{last_seen_deposit}."
+      end
     end
   end
 end

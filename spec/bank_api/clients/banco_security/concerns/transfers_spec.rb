@@ -13,6 +13,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::Transfers, client: true do
       @password = 'password'
       @company_rut = '98.765.432-1'
       @days_to_check = 6
+      @page_size = 30
     end
   end
 

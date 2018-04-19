@@ -2,21 +2,6 @@ require 'date'
 require 'spec_helper'
 
 RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
-  let(:deposits) do
-    [
-      {
-        amount: 1000,
-        date: Date.parse('01/01/2017'),
-        rut: '12.345.678-9'
-      },
-      {
-        amount: 2000,
-        date: Date.parse('01/01/2017'),
-        rut: '12.345.678-9'
-      }
-    ]
-  end
-
   let(:lines) do
     [
       '01/01/2018', '', '12.345.678-9', '', '', '$ 1.000', '',
@@ -48,6 +33,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
           user_rut: '',
           password: '',
           company_rut: '',
+          page_size: 50,
           dynamic_card:  dynamic_card
         ),
         days_to_check: 6
@@ -72,6 +58,9 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     allow(dynamic_card).to receive(:get_coordinate_value).and_return('11')
 
     allow(selenium_browser).to receive(:execute_script)
+
+    mock_set_page_size
+    mock_wait_for_deposits_fetch
   end
 
   def mock_validate_credentials
@@ -84,6 +73,10 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
   def mock_validate_transfer_valid_data
     allow(subject).to receive(:validate_transfer_valid_data)
+  end
+
+  def mock_validate_deposits
+    allow(subject).to receive(:validate_deposits)
   end
 
   def mock_execute_transfer
@@ -99,6 +92,18 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
   def mock_get_deposits
     allow(subject).to receive(:get_deposits)
+  end
+
+  def mock_set_page_size
+    allow(subject).to receive(:set_page_size)
+  end
+
+  def mock_wait_for_deposits_fetch
+    allow(subject).to receive(:wait_for_deposits_fetch)
+  end
+
+  def mock_wait_for_next_page
+    allow(subject).to receive(:wait_for_next_page)
   end
 
   describe "get_recent_deposits" do
@@ -160,6 +165,69 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
       it 'returns empty array' do
         expect(subject.get_recent_deposits).to eq([])
+      end
+    end
+
+    describe "#validate_deposits" do
+      before do
+        mock_validate_credentials
+        mock_site_navigation
+        mock_set_page_size
+        mock_wait_for_deposits_fetch
+        mock_wait_for_next_page
+        expect(subject).to receive(:any_deposits?).and_return(true)
+      end
+
+      context "with less deposits" do
+        let(:deposits) { [{}] * 30 }
+
+        before do
+          allow(subject).to receive(:deposits_from_page).and_return(deposits)
+          allow(subject).to receive(:total_deposits).and_return(50)
+          allow(subject).to receive(:last_deposit_in_current_page).and_return(50)
+        end
+
+        it "raises error" do
+          expect { subject.get_recent_deposits }.to raise_error(
+            BankApi::Deposit::QuantityError, "Expected 50 deposits," +
+              " got 30."
+          )
+        end
+      end
+
+      context "with unseen deposits" do
+        let(:deposits) { [{}] * 50 }
+
+        before do
+          allow(subject).to receive(:total_deposits).and_return(50)
+          allow(subject).to receive(:deposits_from_page).and_return(deposits)
+          allow(subject).to receive(:last_deposit_in_current_page).and_return(30)
+        end
+
+        it "raises error" do
+          expect { subject.get_recent_deposits }.to raise_error(
+            BankApi::Deposit::PaginationError, "Expected to fetch 50 deposits," +
+              " the last seen deposit was nº 30."
+          )
+        end
+      end
+    end
+
+    context "with pagination" do
+      before do
+        mock_validate_credentials
+        mock_site_navigation
+        mock_validate_deposits
+        mock_wait_for_next_page
+        expect(subject).to receive(:any_deposits?).and_return(true)
+        expect(subject).to receive(:total_deposits).and_return(150)
+        expect(subject).to receive(:last_deposit_in_current_page).and_return(50, 100, 150)
+      end
+
+      it "goes through every page" do
+        expect(subject).to receive(:goto_next_page).exactly(2).times
+
+        subject.get_recent_deposits
       end
     end
   end
@@ -297,21 +365,6 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       expect(subject).to receive(:fill_coordinates).exactly(2).times
 
       subject.batch_transfers(transfers_data)
-    end
-  end
-
-  context "with pagination" do
-    before do
-      mock_validate_credentials
-      mock_site_navigation
-      expect(subject).to receive(:any_deposits?).and_return(true)
-      expect(subject).to receive(:total_results).and_return(150)
-    end
-
-    it "goes through every page" do
-      expect(subject).to receive(:goto_next_page).exactly(2).times
-
-      subject.get_recent_deposits
     end
   end
 end
