@@ -13,6 +13,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
       @password = 'password'
       @company_rut = '98.765.432-1'
       @days_to_check = 6
+      @page_size = 30
     end
   end
 
@@ -27,18 +28,37 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
     ].map { |t| double(text: t) }
   end
 
+  let(:page_info) { double(text: "1 - 4 de 4", any?: true) }
+
+  def mock_set_page_size
+    allow(dummy).to receive(:set_page_size)
+  end
+
+  def mock_wait_for_deposits_fetch
+    allow(dummy).to receive(:wait_for_deposits_fetch)
+  end
+
+  def mock_wait_for_next_page
+    allow(dummy).to receive(:wait_for_next_page)
+  end
+
   before do
     dummy.instance_variable_set(:@dynamic_card, dynamic_card)
     allow(dummy).to receive(:browser).and_return(browser)
 
     allow(browser).to receive(:search).and_return(div)
     allow(browser).to receive(:search).with('#gridPrincipalRecibidas tbody td').and_return(lines)
+    allow(browser).to receive(:search).with('.k-pager-info').and_return(page_info)
     allow(browser).to receive(:goto)
     allow(div).to receive(:any?).and_return(true)
     allow(div).to receive(:none?).and_return(true)
     allow(div).to receive(:count).and_return(1)
     allow(div).to receive(:click)
     allow(div).to receive(:set)
+
+    mock_set_page_size
+    mock_wait_for_deposits_fetch
+    mock_wait_for_next_page
   end
 
   it "implements select_deposits_range" do
@@ -75,16 +95,6 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
           }
         ]
       )
-    end
-  end
-
-  context "without deposits" do
-    before do
-      allow(browser).to receive(:search).with('#gridPrincipalRecibidas tbody td').and_return([])
-    end
-
-    it "returns empty array" do
-      expect(dummy.extract_deposits_from_html).to eq([])
     end
   end
 end
