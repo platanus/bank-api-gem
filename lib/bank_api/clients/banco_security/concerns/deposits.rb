@@ -13,9 +13,9 @@ module BankApi::Clients::BancoSecurity
       browser.search('#RadioEntreFechasRecibido').click
       browser.search('#datePickerInicioRecibidas').set deposit_range[:start]
       browser.search('#datePickerFinRecibido').set deposit_range[:end]
-      browser.search('.ContenedorSubmitRecibidas .btn_buscar').click
-      set_page_size
+      wait('.ContenedorSubmitRecibidas .btn_buscar').click
       wait_for_deposits_fetch
+      set_page_size
     end
 
     def wait_for_deposits_fetch
