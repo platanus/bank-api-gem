@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    bank_api (0.2.6)
+    bank_api (0.2.7)
       pincers
       timezone (~> 1.0)
 
@@ -9,7 +9,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     byebug (10.0.2)
-    childprocess (0.8.0)
+    childprocess (0.9.0)
       ffi (~> 1.0, >= 1.0.11)
     coderay (1.1.2)
     diff-lcs (1.3)
