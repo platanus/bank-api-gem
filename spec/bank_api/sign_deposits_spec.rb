@@ -10,7 +10,7 @@ RSpec.describe BankApi::SignDeposits do
     ]
   end
 
-  let(:expected_signature) { '6e652e430638ab1c6fa631553c21344972017c48666' }
+  let(:expected_signature) { '25000|2017-03-03|12345678-9|security|1' }
 
   before { allow(Time).to receive(:now).and_return(666) }
 

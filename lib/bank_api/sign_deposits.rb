@@ -1,5 +1,3 @@
-require 'digest/sha1'
-
 module BankApi::SignDeposits
   extend self
 
@@ -35,7 +33,7 @@ module BankApi::SignDeposits
 
   def entry_signature(entry, occurrencies)
     key = entry_key(entry)
-    Digest::SHA1.hexdigest("#{key}|#{occurrencies}") + Time.now.to_i.to_s
+    "#{key}|#{occurrencies}"
   end
 
   def entry_key(entry)
