@@ -96,15 +96,14 @@ module BankApi::Clients::BancoSecurity
     def deposit_range
       @deposit_range ||= begin
         timezone = Timezone['America/Santiago']
-        {
-          start: (timezone.utc_to_local(Time.now).to_date - @days_to_check).strftime('%d/%m/%Y'),
-          end: timezone.utc_to_local(Time.now).to_date.strftime('%d/%m/%Y')
-        }
+        today = timezone.utc_to_local(Time.now).to_date
+        { start: (today - @days_to_check).strftime('%d/%m/%Y'), end: today.strftime('%d/%m/%Y') }
       end
     end
 
     def any_deposits?
       browser.search(
+        "#gridPrincipalRecibidas " \
         ".k-label:contains('No se han encontrado transacciones para la búsqueda seleccionada.')"
       ).none?
     end
