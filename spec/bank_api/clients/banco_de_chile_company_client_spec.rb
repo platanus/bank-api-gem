@@ -72,11 +72,12 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
   describe "get_recent_deposits" do
     before do
       mock_validate_credentials
+      mock_site_navigation
     end
 
     it 'validates and returns entries on get_recent_deposits' do
       expect(subject).to receive(:validate_credentials)
-      expect(subject).to receive(:get_deposits).and_return(
+      expect(subject).to receive(:get_deposits_try).and_return(
         [
           {
             rut: '12.345.678-9',
@@ -94,7 +95,7 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
             amount: 4000
           }
         ]
-      )
+      ).exactly(2).times
 
       subject.get_recent_deposits
     end
@@ -136,14 +137,69 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
     before do
       mock_validate_credentials
       mock_site_navigation
-      expect(subject).to receive(:any_deposits?).and_return(true)
-      expect(subject).to receive(:total_results).and_return(30)
+      expect(subject).to receive(:any_deposits?).and_return(true).exactly(2).times
+      expect(subject).to receive(:total_results).and_return(30).exactly(2)
     end
 
     it "goes through every page" do
-      expect(subject).to receive(:goto_next_page).exactly(2).times
+      expect(subject).to receive(:goto_next_page).exactly(4).times
 
       subject.get_recent_deposits
+    end
+  end
+
+  describe "duplicate check" do
+    before do
+      mock_validate_credentials
+      mock_site_navigation
+    end
+
+    context "without duplicates" do
+      before do
+        expect(subject).to receive(:get_deposits_try).and_return(
+          [
+            {
+              rut: '12.345.678-9',
+              date: Date.parse('01/01/2018'),
+              amount: 1000
+            }
+          ]
+        ).exactly(2).times
+      end
+
+      it "returns deposits" do
+        expect(subject.get_recent_deposits.count).to eq(1)
+      end
+    end
+
+    context "with duplicates" do
+      before do
+        expect(subject).to receive(:get_deposits_try).and_return(
+          [
+            {
+              rut: '12.345.678-9',
+              date: Date.parse('01/01/2018'),
+              amount: 1000
+            }
+          ],
+          [
+            {
+              rut: '12.345.678-9',
+              date: Date.parse('01/01/2018'),
+              amount: 1000
+            },
+            {
+              rut: '12.345.678-9',
+              date: Date.parse('01/01/2018'),
+              amount: 1000
+            }
+          ]
+        )
+      end
+
+      it "returns no deposits" do
+        expect(subject.get_recent_deposits.count).to eq(0)
+      end
     end
   end
 end
