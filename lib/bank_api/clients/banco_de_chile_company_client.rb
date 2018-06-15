@@ -39,12 +39,17 @@ module BankApi::Clients
 
     def get_deposits
       login
+      deposits_first_try = get_deposits_try
+      deposits_second_try = get_deposits_try
+      browser.close
+      deposits_first_try == deposits_second_try ? deposits_first_try : []
+    end
+
+    def get_deposits_try
       goto_deposits
       select_deposits_range
       submit_deposits_form
-      deposits = extract_deposits_from_html
-      browser.close
-      deposits
+      extract_deposits_from_html
     end
 
     def login
