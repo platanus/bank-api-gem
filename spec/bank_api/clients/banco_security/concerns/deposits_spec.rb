@@ -19,14 +19,17 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
 
   let(:dummy) { DummyClass.new }
 
-  let(:lines) do
-    [
-      '01/01/2018', '', '12.345.678-9', '', '', '$ 1.000', '',
-      '01/01/2018', '', '12.345.678-9', '', '', '$ 2.000', '',
-      '01/01/2018', '', '12.345.678-9', '', '', '$ 3.000', '',
-      '01/01/2018', '', '12.345.678-9', '', '', '$ 4.000', ''
-    ].map { |t| double(text: t) }
+  let(:txt_file) do
+    double(
+      content: "Fecha|Nombre emisor|RUT emisor|Cuenta origen|Banco origen|Monto|Asunto\n" +
+        "01/01/2018 01:15|PEPE|123456789|0000000011111|Banco Falabella|1000|\n" +
+        "01/01/2018 05:15|GARY|123456789|0000000011111|Banco Santander|2000|Hello\n" +
+        "01/01/2018 07:15|PEPE|123456789|0000000011111|Banco Falabella|3000|\n" +
+        "01/01/2018 08:00|PEPE|123456789|0000000011111|Banco Falabella|4000|\n"
+    )
   end
+
+  let(:txt_url) { "https://file.txt" }
 
   let(:page_info) { double(text: "1 - 4 de 4", any?: true) }
 
@@ -45,11 +48,13 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
   before do
     dummy.instance_variable_set(:@dynamic_card, dynamic_card)
     allow(dummy).to receive(:browser).and_return(browser)
+    allow(dummy).to receive(:deposits_txt_url).and_return(txt_url)
+    allow(dummy).to receive(:any_deposits?).and_return(true)
 
     allow(browser).to receive(:search).and_return(div)
-    allow(browser).to receive(:search).with('#gridPrincipalRecibidas tbody td').and_return(lines)
     allow(browser).to receive(:search).with('.k-pager-info').and_return(page_info)
     allow(browser).to receive(:goto)
+    allow(browser).to receive(:download).with(txt_url).and_return(txt_file)
     allow(div).to receive(:any?).and_return(true)
     allow(div).to receive(:none?).and_return(true)
     allow(div).to receive(:count).and_return(1)
@@ -65,31 +70,31 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
     expect { dummy.select_deposits_range }.not_to raise_error
   end
 
-  it "implements extract_deposits_from_html" do
-    expect { dummy.extract_deposits_from_html }.not_to raise_error
+  it "implements deposits_from_txt" do
+    expect { dummy.deposits_from_txt }.not_to raise_error
   end
 
   context "with deposits" do
     it "returns deposits" do
-      expect(dummy.extract_deposits_from_html).to eq(
+      expect(dummy.deposits_from_txt).to eq(
         [
           {
-            rut: '12.345.678-9',
+            rut: '12345678-9',
             date: Date.parse('01/01/2018'),
             amount: 1000
           },
           {
-            rut: '12.345.678-9',
+            rut: '12345678-9',
             date: Date.parse('01/01/2018'),
             amount: 2000
           },
           {
-            rut: '12.345.678-9',
+            rut: '12345678-9',
             date: Date.parse('01/01/2018'),
             amount: 3000
           },
           {
-            rut: '12.345.678-9',
+            rut: '12345678-9',
             date: Date.parse('01/01/2018'),
             amount: 4000
           }

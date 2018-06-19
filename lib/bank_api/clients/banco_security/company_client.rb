@@ -1,3 +1,4 @@
+require 'cgi'
 require 'timezone'
 
 require 'bank_api/clients/base_client'
@@ -29,17 +30,13 @@ module BankApi::Clients::BancoSecurity
 
     def get_deposits
       login
-      deposits_first_try = get_deposits_try
-      deposits_second_try = get_deposits_try
-      browser.close
-      deposits_first_try == deposits_second_try ? deposits_first_try : []
-    end
-
-    def get_deposits_try
       goto_company_dashboard
       goto_deposits
       select_deposits_range
-      extract_deposits_from_html
+      deposits = deposits_from_txt
+      validate_deposits(deposits) unless deposits.empty?
+      browser.close
+      deposits
     end
 
     def execute_transfer(transfer_data)
