@@ -2,14 +2,17 @@ require 'date'
 require 'spec_helper'
 
 RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
-  let(:lines) do
-    [
-      '01/01/2018', '', '12.345.678-9', '', '', '$ 1.000', '',
-      '01/01/2018', '', '12.345.678-9', '', '', '$ 2.000', '',
-      '01/01/2018', '', '12.345.678-9', '', '', '$ 3.000', '',
-      '01/01/2018', '', '12.345.678-9', '', '', '$ 4.000', ''
-    ].map { |t| double(text: t) }
+  let(:txt_file) do
+    double(
+      content: "Fecha|Nombre emisor|RUT emisor|Cuenta origen|Banco origen|Monto|Asunto\n" +
+        "01/01/2018 01:15|PEPE|123456789|0000000011111|Banco Falabella|1000|\n" +
+        "01/01/2018 05:15|GARY|123456789|0000000011111|Banco Santander|2000|Hello\n" +
+        "01/01/2018 07:15|PEPE|123456789|0000000011111|Banco Falabella|3000|\n" +
+        "01/01/2018 08:00|PEPE|123456789|0000000011111|Banco Falabella|4000|\n"
+    )
   end
+
+  let(:txt_url) { "https://file.txt" }
 
   let(:div) { double(text: 'text') }
 
@@ -44,11 +47,12 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
   before do
     allow(subject).to receive(:browser).and_return(browser)
     allow(subject).to receive(:selenium_browser).and_return(selenium_browser)
+    allow(subject).to receive(:deposits_txt_url).and_return(txt_url)
 
     allow(browser).to receive(:goto)
     allow(browser).to receive(:close)
     allow(browser).to receive(:search).and_return(div)
-    allow(browser).to receive(:search).with('#gridPrincipalRecibidas tbody td').and_return(lines)
+    allow(browser).to receive(:download).with(txt_url).and_return(txt_file)
 
     allow(div).to receive(:click)
     allow(div).to receive(:set)
@@ -59,7 +63,6 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
     allow(selenium_browser).to receive(:execute_script)
 
-    mock_set_page_size
     mock_wait_for_deposits_fetch
   end
 
@@ -94,16 +97,8 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     allow(subject).to receive(:get_deposits)
   end
 
-  def mock_set_page_size
-    allow(subject).to receive(:set_page_size)
-  end
-
   def mock_wait_for_deposits_fetch
     allow(subject).to receive(:wait_for_deposits_fetch)
-  end
-
-  def mock_wait_for_next_page
-    allow(subject).to receive(:wait_for_next_page)
   end
 
   describe "get_recent_deposits" do
@@ -114,25 +109,25 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
     it 'validates and returns entries on get_recent_deposits' do
       expect(subject).to receive(:validate_credentials)
-      expect(subject).to receive(:get_deposits_try).and_return(
+      expect(subject).to receive(:get_deposits).and_return(
         [
           {
-            rut: '12.345.678-9',
+            rut: '12345678-9',
             date: Date.parse('01/01/2018'),
             amount: 1000
           },
           {
-            rut: '12.345.678-9',
+            rut: '12345678-9',
             date: Date.parse('01/01/2018'),
             amount: 2000
           },
           {
-            rut: '12.345.678-9',
+            rut: '12345678-9',
             date: Date.parse('01/01/2018'),
             amount: 4000
           }
         ]
-      ).exactly(2).times
+      )
 
       subject.get_recent_deposits
     end
@@ -158,13 +153,19 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     end
 
     context 'with no deposits' do
+      let(:txt_file) do
+        double(
+          content: "Fecha|Nombre emisor|RUT emisor|Cuenta origen|Banco origen|Monto|Asunto"
+        )
+      end
+
       before do
         mock_validate_credentials
         mock_site_navigation
         allow(subject).to receive(:any_deposits?).and_return(false)
       end
 
-      it 'returns empty array' do
+      fit 'returns empty array' do
         expect(subject.get_recent_deposits).to eq([])
       end
     end
@@ -173,17 +174,15 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       before do
         mock_validate_credentials
         mock_site_navigation
-        mock_set_page_size
         mock_wait_for_deposits_fetch
-        mock_wait_for_next_page
-        expect(subject).to receive(:any_deposits?).and_return(true)
+        allow(subject).to receive(:any_deposits?).and_return(true)
       end
 
       context "with less deposits" do
         let(:deposits) { [{}] * 30 }
 
         before do
-          allow(subject).to receive(:deposits_from_page).and_return(deposits)
+          allow(subject).to receive(:deposits_from_txt).and_return(deposits)
           allow(subject).to receive(:total_deposits).and_return(50)
           allow(subject).to receive(:last_deposit_in_current_page).and_return(50)
         end
@@ -193,98 +192,6 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
             BankApi::Deposit::QuantityError, "Expected 50 deposits," +
               " got 30."
           )
-        end
-      end
-
-      context "with unseen deposits" do
-        let(:deposits) { [{}] * 50 }
-
-        before do
-          allow(subject).to receive(:total_deposits).and_return(50)
-          allow(subject).to receive(:deposits_from_page).and_return(deposits)
-          allow(subject).to receive(:last_deposit_in_current_page).and_return(30)
-        end
-
-        it "raises error" do
-          expect { subject.get_recent_deposits }.to raise_error(
-            BankApi::Deposit::PaginationError, "Expected to fetch 50 deposits," +
-              " the last seen deposit was nº 30."
-          )
-        end
-      end
-    end
-
-    context "with pagination" do
-      before do
-        mock_validate_credentials
-        mock_site_navigation
-        mock_validate_deposits
-        mock_wait_for_next_page
-        expect(subject).to receive(:any_deposits?).and_return(true).exactly(2).times
-        expect(subject).to receive(:total_deposits).and_return(150).exactly(2).times
-        expect(subject).to receive(:last_deposit_in_current_page)
-          .and_return(50, 100, 150, 50, 100, 150)
-      end
-
-      it "goes through every page" do
-        expect(subject).to receive(:goto_next_page).exactly(4).times
-
-        subject.get_recent_deposits
-      end
-    end
-
-    describe "duplicate check" do
-      before do
-        mock_validate_credentials
-        mock_site_navigation
-        mock_validate_deposits
-      end
-
-      context "without duplicates" do
-        before do
-          expect(subject).to receive(:get_deposits_try).and_return(
-            [
-              {
-                rut: '12.345.678-9',
-                date: Date.parse('01/01/2018'),
-                amount: 1000
-              }
-            ]
-          ).exactly(2).times
-        end
-
-        it "returns deposits" do
-          expect(subject.get_recent_deposits.count).to eq(1)
-        end
-      end
-
-      context "with duplicates" do
-        before do
-          expect(subject).to receive(:get_deposits_try).and_return(
-            [
-              {
-                rut: '12.345.678-9',
-                date: Date.parse('01/01/2018'),
-                amount: 1000
-              }
-            ],
-            [
-              {
-                rut: '12.345.678-9',
-                date: Date.parse('01/01/2018'),
-                amount: 1000
-              },
-              {
-                rut: '12.345.678-9',
-                date: Date.parse('01/01/2018'),
-                amount: 1000
-              }
-            ]
-          )
-        end
-
-        it "returns no deposits" do
-          expect(subject.get_recent_deposits.count).to eq(0)
         end
       end
     end
