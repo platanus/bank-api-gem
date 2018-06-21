@@ -2,30 +2,19 @@ require 'date'
 require 'spec_helper'
 
 RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
-  let(:deposits) do
-    [
-      {
-        amount: 1000,
-        date: Date.parse('01/01/2017'),
-        rut: '12.345.678-9'
-      },
-      {
-        amount: 2000,
-        date: Date.parse('01/01/2017'),
-        rut: '12.345.678-9'
-      }
-    ]
+  let(:txt_file_response) do
+    double(
+      body: "Fecha; Cta. Origen;Cta. Abono;Nombre Origen;" +
+        "Rut Origen;Banco Origen;Monto;Estado\r\n" +
+        "01/01/2018;0001111;00-01;PEPE;12.345.678-9;BBVA;1000;Aprobada\r\n" +
+        "01/01/2018;0001111;00-01;GARY;12.345.678-9;BBVA;2000;Aprobada\r\n" +
+        "01/01/2018;0001111;00-01;PEPE;12.345.678-9;BBVA;3000;Rechazada\r\n" +
+        "01/01/2018;0001111;00-01;PEPE;12.345.678-9;Banco Falabella;4000;Aprobada\r\n"
+    )
   end
 
-  let(:lines) do
-    [
-      '',
-      '01/01/2018', '', '', '', '12.345.678-9', '', '1,000', 'Aprobada', '',
-      '01/01/2018', '', '', '', '12.345.678-9', '', '2,000', 'Aprobada', '',
-      '01/01/2018', '', '', '', '12.345.678-9', '', '3,000', 'Rechazada', '',
-      '01/01/2018', '', '', '', '12.345.678-9', '', '4,000', 'Aprobada', ''
-    ].map { |t| double(text: t) }
-  end
+  let(:params) { double }
+  let(:session_headers) { double }
 
   let(:div) { double }
 
@@ -44,11 +33,20 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
 
   before do
     allow(subject).to receive(:browser).and_return(browser)
+    allow(subject).to receive(:deposits_params).with("01/01/2018", "07/01/2018").and_return(params)
+    allow(subject).to receive(:session_headers).and_return(session_headers)
+    allow(subject).to receive(:deposit_range).and_return(start: "01/01/2018", end: "07/01/2018")
 
     allow(browser).to receive(:goto)
     allow(browser).to receive(:close)
     allow(browser).to receive(:search).and_return(div)
-    allow(browser).to receive(:search).with('.linea1tabla').and_return(lines)
+    allow(browser).to receive(:search).with('table#sin_datos').and_return([])
+
+    allow(RestClient).to receive(:post).with(
+      'https://www.empresas.bancochile.cl/GlosaInternetEmpresaRecibida/RespuestaConsultaRecibidaAction.do',
+      params,
+      session_headers
+    ).and_return(txt_file_response)
 
     allow(div).to receive(:click)
     allow(div).to receive(:set)
@@ -77,7 +75,7 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
 
     it 'validates and returns entries on get_recent_deposits' do
       expect(subject).to receive(:validate_credentials)
-      expect(subject).to receive(:get_deposits_try).and_return(
+      expect(subject.send(:get_deposits)).to eq(
         [
           {
             rut: '12.345.678-9',
@@ -95,7 +93,7 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
             amount: 4000
           }
         ]
-      ).exactly(2).times
+      )
 
       subject.get_recent_deposits
     end
@@ -130,105 +128,6 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
 
     it 'returns empty array' do
       expect(subject.get_recent_deposits).to eq([])
-    end
-  end
-
-  context "with pagination" do
-    before do
-      mock_validate_credentials
-      mock_site_navigation
-      expect(subject).to receive(:any_deposits?).and_return(true).exactly(2).times
-      expect(subject).to receive(:total_results).and_return(30).exactly(2)
-    end
-
-    it "goes through every page" do
-      expect(subject).to receive(:goto_next_page).exactly(4).times
-
-      subject.get_recent_deposits
-    end
-  end
-
-  describe "duplicate check" do
-    before do
-      mock_validate_credentials
-      mock_site_navigation
-    end
-
-    context "without duplicates" do
-      before do
-        expect(subject).to receive(:get_deposits_try).and_return(
-          [
-            {
-              rut: '12.345.678-9',
-              date: Date.parse('01/01/2018'),
-              amount: 1000
-            }
-          ]
-        ).exactly(2).times
-      end
-
-      it "returns deposits" do
-        expect(subject.get_recent_deposits.count).to eq(1)
-      end
-    end
-
-    context "with duplicates" do
-      before do
-        expect(subject).to receive(:get_deposits_try).and_return(
-          [
-            {
-              rut: '12.345.678-9',
-              date: Date.parse('01/01/2018'),
-              amount: 1000
-            }
-          ],
-          [
-            {
-              rut: '12.345.678-9',
-              date: Date.parse('01/01/2018'),
-              amount: 1000
-            },
-            {
-              rut: '12.345.678-9',
-              date: Date.parse('01/01/2018'),
-              amount: 1000
-            }
-          ]
-        )
-      end
-
-      it "returns no deposits" do
-        expect(subject.get_recent_deposits.count).to eq(0)
-      end
-    end
-
-    describe "ensure browser.close" do
-      before do
-        mock_validate_credentials
-        expect(browser).to receive(:close)
-      end
-
-      context "without error" do
-        before do
-          mock_site_navigation
-          expect(subject).to receive(:any_deposits?).and_return(true).exactly(2).times
-          expect(subject).to receive(:total_results).and_return(30).exactly(2)
-        end
-
-        it "calls browser.close" do
-          subject.get_recent_deposits
-        end
-      end
-
-      context "with error" do
-        before do
-          allow(subject).to receive(:get_deposits_try).and_raise(StandardError)
-        end
-
-        it "calls browser.close" do
-          expect { subject.get_recent_deposits }.to raise_error(StandardError)
-        end
-      end
     end
   end
 end
