@@ -50,6 +50,23 @@ module BankApi::Clients::Navigation
         wait('a.k-link:contains("Recibidas")').click
       end
 
+      def goto_balance
+        goto_frame query: '#topFrame'
+        selenium_browser.execute_script(
+          "MM_goToURL('parent.frames[\\'topFrame\\']','../menu/MenuTopInicio.asp'," +
+          "'parent.frames[\\'leftFrame\\']','../menu/MenuInicio.asp'," +
+          "'parent.frames[\\'mainFrame\\']','../../../noticias/arriba_noticias.asp');" +
+          "return document.MM_returnValue;"
+        )
+        selenium_browser.execute_script(
+          "MM_goToURL('parent.frames[\\'mainFrame\\']'," +
+          "'/empresas/RedirectConvivencia.asp?urlRedirect" +
+          "=Cartola/Home/CartolaOrSaldoCuentaCorriente')"
+        )
+        goto_frame query: '#mainFrame'
+        goto_frame query: 'iframe[name="central"]', should_reset: false
+      end
+
       def goto_transfer_form
         goto_frame query: '#topFrame'
         selenium_browser.execute_script(

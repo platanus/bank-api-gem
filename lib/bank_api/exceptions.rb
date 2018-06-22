@@ -1,5 +1,8 @@
 module BankApi
   class MissingCredentialsError < StandardError; end
+  module Balance
+    class InvalidAccountNumber < StandardError; end
+  end
   module Deposit
     class QuantityError < StandardError; end
     class PaginationError < StandardError; end

@@ -26,6 +26,10 @@ module BankApi
   end
 
   module BancoSecurity
+    def self.get_account_balance(account_number)
+      Clients::BancoSecurity::CompanyClient.new(BankApi.configuration).get_balance(account_number)
+    end
+
     def self.get_recent_company_deposits
       Clients::BancoSecurity::CompanyClient.new(BankApi.configuration).get_recent_deposits
     end
