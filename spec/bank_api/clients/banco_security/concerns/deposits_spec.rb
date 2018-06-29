@@ -13,7 +13,6 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
       @password = 'password'
       @company_rut = '98.765.432-1'
       @days_to_check = 6
-      @page_size = 30
     end
   end
 
@@ -32,10 +31,6 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
   let(:txt_url) { "https://file.txt" }
 
   let(:page_info) { double(text: "1 - 4 de 4", any?: true) }
-
-  def mock_set_page_size
-    allow(dummy).to receive(:set_page_size)
-  end
 
   def mock_wait_for_deposits_fetch
     allow(dummy).to receive(:wait_for_deposits_fetch)
@@ -61,7 +56,6 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
     allow(div).to receive(:click)
     allow(div).to receive(:set)
 
-    mock_set_page_size
     mock_wait_for_deposits_fetch
     mock_wait_for_next_page
   end
