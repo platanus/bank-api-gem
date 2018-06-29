@@ -26,6 +26,19 @@ module BankApi
   end
 
   module BancoSecurity
+    def self.with_credentials(user_rut:, password:, company_rut:, dynamic_card_entries: nil)
+      config = Configuration.new
+
+      config.banco_security.user_rut = user_rut
+      config.banco_security.password = password
+      config.banco_security.company_rut = company_rut
+      config.banco_security.dynamic_card_entries = (
+        dynamic_card_entries || BankApi.configuration.banco_security.dynamic_card_entries
+      )
+
+      Clients::BancoSecurity::CompanyClient.new(config)
+    end
+
     def self.get_recent_company_deposits
       Clients::BancoSecurity::CompanyClient.new(BankApi.configuration).get_recent_deposits
     end

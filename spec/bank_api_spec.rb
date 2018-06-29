@@ -10,24 +10,51 @@ RSpec.describe BankApi do
     BankApi.get_bdc_recent_company_deposits
   end
 
-  it 'calls get_recent_deposits on BancoSecurity::CompanyClient' do
-    expect_any_instance_of(BankApi::Clients::BancoSecurity::CompanyClient)
-      .to receive(:get_recent_deposits)
+  describe "BancoSecurity" do
+    it 'calls get_recent_deposits on BancoSecurity::CompanyClient' do
+      expect_any_instance_of(BankApi::Clients::BancoSecurity::CompanyClient)
+        .to receive(:get_recent_deposits)
 
-    BankApi::BancoSecurity.get_recent_company_deposits
-  end
+      BankApi::BancoSecurity.get_recent_company_deposits
+    end
 
-  it 'calls transfer on  BancoSecurity::CompanyClient' do
-    expect_any_instance_of(BankApi::Clients::BancoSecurity::CompanyClient)
-      .to receive(:transfer)
+    it 'calls transfer on  BancoSecurity::CompanyClient' do
+      expect_any_instance_of(BankApi::Clients::BancoSecurity::CompanyClient)
+        .to receive(:transfer)
 
-    BankApi::BancoSecurity.company_transfer({})
-  end
+      BankApi::BancoSecurity.company_transfer({})
+    end
 
-  it 'calls batch_transfers BancoSecurity::CompanyClient' do
-    expect_any_instance_of(BankApi::Clients::BancoSecurity::CompanyClient)
-      .to receive(:batch_transfers)
+    it 'calls batch_transfers BancoSecurity::CompanyClient' do
+      expect_any_instance_of(BankApi::Clients::BancoSecurity::CompanyClient)
+        .to receive(:batch_transfers)
 
-    BankApi::BancoSecurity.company_batch_transfers([])
+      BankApi::BancoSecurity.company_batch_transfers([])
+    end
+
+    context "with_credentials" do
+      let(:credentials) { { user_rut: "2-k", password: "password", company_rut: "1-k" } }
+
+      it 'calls get_recent_deposits on BancoSecurity::CompanyClient' do
+        expect_any_instance_of(BankApi::Clients::BancoSecurity::CompanyClient)
+          .to receive(:get_recent_deposits)
+
+        BankApi::BancoSecurity.with_credentials(**credentials).get_recent_company_deposits
+      end
+
+      it 'calls transfer on  BancoSecurity::CompanyClient' do
+        expect_any_instance_of(BankApi::Clients::BancoSecurity::CompanyClient)
+          .to receive(:transfer)
+
+        BankApi::BancoSecurity.with_credentials(**credentials).company_transfer({})
+      end
+
+      it 'calls batch_transfers BancoSecurity::CompanyClient' do
+        expect_any_instance_of(BankApi::Clients::BancoSecurity::CompanyClient)
+          .to receive(:batch_transfers)
+
+        BankApi::BancoSecurity.with_credentials(**credentials).company_batch_transfers([])
+      end
+    end
   end
 end

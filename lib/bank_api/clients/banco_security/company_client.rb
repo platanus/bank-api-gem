@@ -20,7 +20,6 @@ module BankApi::Clients::BancoSecurity
       @password = config.banco_security.password
       @company_rut = config.banco_security.company_rut
       @dynamic_card = config.banco_security.dynamic_card
-      @page_size = config.banco_security.page_size
       super
     end
 
@@ -55,6 +54,18 @@ module BankApi::Clients::BancoSecurity
         submit_transfer_form(transfer_data)
         fill_coordinates
       end
+    end
+
+    def get_recent_company_deposits
+      get_recent_deposits
+    end
+
+    def company_transfer(transfer_data)
+      transfer(transfer_data)
+    end
+
+    def company_batch_transfers(transfers_data)
+      batch_transfers(transfers_data)
     end
 
     def goto_frame(query: nil, should_reset: true)

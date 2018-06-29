@@ -36,7 +36,6 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
           user_rut: '',
           password: '',
           company_rut: '',
-          page_size: 50,
           dynamic_card:  dynamic_card
         ),
         days_to_check: 6
@@ -330,6 +329,33 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       expect(subject).to receive(:fill_coordinates).exactly(2).times
 
       subject.batch_transfers(transfers_data)
+    end
+  end
+
+  describe "#company methods" do
+    describe "#get_recent_company_deposits" do
+      it "calls get_recent_deposits" do
+        expect(subject).to receive(:get_recent_deposits)
+        subject.get_recent_company_deposits
+      end
+    end
+
+    describe "#company_transfer" do
+      let(:transfer_data) { double }
+
+      it "calls get_recent_deposits" do
+        expect(subject).to receive(:transfer).with(transfer_data)
+        subject.company_transfer(transfer_data)
+      end
+    end
+
+    describe "#company_batch_transfers" do
+      let(:transfer_data) { double }
+
+      it "calls get_recent_deposits" do
+        expect(subject).to receive(:batch_transfers).with(transfer_data)
+        subject.company_batch_transfers(transfer_data)
+      end
     end
   end
 end
