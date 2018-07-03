@@ -165,7 +165,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
         allow(subject).to receive(:any_deposits?).and_return(false)
       end
 
-      fit 'returns empty array' do
+      it 'returns empty array' do
         expect(subject.get_recent_deposits).to eq([])
       end
     end
@@ -192,6 +192,31 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
             BankApi::Deposit::QuantityError, "Expected 50 deposits," +
               " got 30."
           )
+        end
+      end
+    end
+
+    describe "ensure browser.close" do
+      before do
+        mock_validate_credentials
+        mock_site_navigation
+        allow(subject).to receive(:any_deposits?).and_return(false)
+        expect(browser).to receive(:close)
+      end
+
+      context "without error" do
+        it "calls browser.close" do
+          subject.get_recent_deposits
+        end
+      end
+
+      context "with error" do
+        before do
+          allow(subject).to receive(:deposits_from_txt).and_raise(StandardError)
+        end
+
+        it "calls browser.close" do
+          expect { subject.get_recent_deposits }.to raise_error(StandardError)
         end
       end
     end
@@ -253,6 +278,32 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       expect(subject).to receive(:fill_coordinates)
 
       subject.transfer(transfer_data)
+    end
+
+    describe "ensure browser.close" do
+      before do
+        expect(browser).to receive(:close)
+      end
+
+      context "without error" do
+        before do
+          expect(subject).to receive(:fill_coordinates)
+        end
+
+        it "calls browser.close" do
+          subject.transfer(transfer_data)
+        end
+      end
+
+      context "with error" do
+        before do
+          allow(subject).to receive(:submit_transfer_form).and_raise(StandardError)
+        end
+
+        it "calls browser.close" do
+          expect { subject.transfer(transfer_data) }.to raise_error(StandardError)
+        end
+      end
     end
   end
 
@@ -330,6 +381,32 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       expect(subject).to receive(:fill_coordinates).exactly(2).times
 
       subject.batch_transfers(transfers_data)
+    end
+
+    describe "ensure browser.close" do
+      before do
+        expect(browser).to receive(:close)
+      end
+
+      context "without error" do
+        before do
+          expect(subject).to receive(:fill_coordinates).exactly(2).times
+        end
+
+        it "calls browser.close" do
+          subject.batch_transfers(transfers_data)
+        end
+      end
+
+      context "with error" do
+        before do
+          allow(subject).to receive(:submit_transfer_form).and_raise(StandardError)
+        end
+
+        it "calls browser.close" do
+          expect { subject.batch_transfers(transfers_data) }.to raise_error(StandardError)
+        end
+      end
     end
   end
 end

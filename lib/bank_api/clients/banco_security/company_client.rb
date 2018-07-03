@@ -35,8 +35,9 @@ module BankApi::Clients::BancoSecurity
       select_deposits_range
       deposits = deposits_from_txt
       validate_deposits(deposits) unless deposits.empty?
-      browser.close
       deposits
+    ensure
+      browser.close
     end
 
     def execute_transfer(transfer_data)
@@ -45,6 +46,8 @@ module BankApi::Clients::BancoSecurity
       goto_transfer_form
       submit_transfer_form(transfer_data)
       fill_coordinates
+    ensure
+      browser.close
     end
 
     def execute_batch_transfers(transfers_data)
@@ -55,6 +58,8 @@ module BankApi::Clients::BancoSecurity
         submit_transfer_form(transfer_data)
         fill_coordinates
       end
+    ensure
+      browser.close
     end
 
     def goto_frame(query: nil, should_reset: true)
