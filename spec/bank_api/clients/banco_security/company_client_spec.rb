@@ -112,17 +112,17 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       expect(subject).to receive(:get_deposits).and_return(
         [
           {
-            rut: '12345678-9',
+            rut: '12.345.678-9',
             date: Date.parse('01/01/2018'),
             amount: 1000
           },
           {
-            rut: '12345678-9',
+            rut: '12.345.678-9',
             date: Date.parse('01/01/2018'),
             amount: 2000
           },
           {
-            rut: '12345678-9',
+            rut: '12.345.678-9',
             date: Date.parse('01/01/2018'),
             amount: 4000
           }

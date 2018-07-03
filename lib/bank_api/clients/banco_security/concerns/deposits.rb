@@ -57,7 +57,9 @@ module BankApi::Clients::BancoSecurity
     end
 
     def format_rut(rut)
-      rut.insert(-2, '-')
+      verification_digit = rut[-1]
+      without_verification_digit = rut[0..-2].reverse.scan(/.{1,3}/).join(".").reverse
+      "#{without_verification_digit}-#{verification_digit}"
     end
 
     def total_deposits
