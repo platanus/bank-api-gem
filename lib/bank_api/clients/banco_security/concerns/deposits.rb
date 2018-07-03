@@ -33,7 +33,7 @@ module BankApi::Clients::BancoSecurity
       transactions.map do |t|
         {
           rut: format_rut(t[RUT_COLUMN]),
-          date: Date.parse(t[DATE_COLUMN]),
+          date: Date.parse(t[DATE_COLUMN].split[0]),
           amount: t[AMOUNT_COLUMN].to_i
         }
       end
