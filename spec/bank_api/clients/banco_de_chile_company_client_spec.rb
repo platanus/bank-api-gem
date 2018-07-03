@@ -201,5 +201,34 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
         expect(subject.get_recent_deposits.count).to eq(0)
       end
     end
+
+    describe "ensure browser.close" do
+      before do
+        mock_validate_credentials
+        expect(browser).to receive(:close)
+      end
+
+      context "without error" do
+        before do
+          mock_site_navigation
+          expect(subject).to receive(:any_deposits?).and_return(true).exactly(2).times
+          expect(subject).to receive(:total_results).and_return(30).exactly(2)
+        end
+
+        it "calls browser.close" do
+          subject.get_recent_deposits
+        end
+      end
+
+      context "with error" do
+        before do
+          allow(subject).to receive(:get_deposits_try).and_raise(StandardError)
+        end
+
+        it "calls browser.close" do
+          expect { subject.get_recent_deposits }.to raise_error(StandardError)
+        end
+      end
+    end
   end
 end
