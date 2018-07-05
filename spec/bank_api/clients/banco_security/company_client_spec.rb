@@ -69,6 +69,10 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     allow(subject).to receive(:validate_credentials)
   end
 
+  def mock_validate_dynamic_card_presence
+    allow(subject).to receive(:validate_dynamic_card_presence)
+  end
+
   def mock_validate_transfer_missing_data
     allow(subject).to receive(:validate_transfer_missing_data)
   end
@@ -212,6 +216,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
     before do
       mock_validate_credentials
+      mock_validate_dynamic_card_presence
       mock_validate_transfer_missing_data
       mock_validate_transfer_valid_data
       mock_site_navigation
@@ -283,6 +288,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
     before do
       mock_validate_credentials
+      mock_validate_dynamic_card_presence
       mock_validate_transfer_missing_data
       mock_validate_transfer_valid_data
       mock_site_navigation

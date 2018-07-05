@@ -1,11 +1,15 @@
 module BankApi::Clients::BancoSecurity
   module Login
     def validate_credentials
-      raise BankApi::MissingCredentialsError if [
+      raise BankApi::MissingCredentialsError, "Missing credentials" if [
         @user_rut,
         @password,
         @company_rut
       ].any?(&:nil?)
+    end
+
+    def validate_dynamic_card_presence
+      raise BankApi::MissingCredentialsError, "Missing dynamic card" if @dynamic_card.nil?
     end
 
     def login

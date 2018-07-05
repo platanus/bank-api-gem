@@ -10,6 +10,10 @@ RSpec.describe BankApi::Clients::BaseClient do
     allow(subject).to receive(:validate_credentials)
   end
 
+  def mock_validate_dynamic_card_presence
+    allow(subject).to receive(:validate_dynamic_card_presence)
+  end
+
   def mock_get_deposits
     allow(subject).to receive(:get_deposits).and_return([])
   end
@@ -67,6 +71,7 @@ RSpec.describe BankApi::Clients::BaseClient do
   describe "#transfer" do
     before do
       mock_validate_credentials
+      mock_validate_dynamic_card_presence
       mock_validate_transfer_missing_data
       mock_validate_transfer_valid_data
       mock_execute_transfer
@@ -85,6 +90,7 @@ RSpec.describe BankApi::Clients::BaseClient do
   describe "#batch_transfers" do
     before do
       mock_validate_credentials
+      mock_validate_dynamic_card_presence
       mock_validate_transfer_missing_data
       mock_validate_transfer_valid_data
       mock_execute_transfer
@@ -104,6 +110,20 @@ RSpec.describe BankApi::Clients::BaseClient do
 
   context "without validate_credentials implementation on transfer" do
     before do
+      mock_validate_dynamic_card_presence
+      mock_validate_transfer_missing_data
+      mock_validate_transfer_valid_data
+      mock_execute_transfer
+    end
+
+    it "raises NotImplementedError" do
+      expect { subject.transfer(transfer_data) }.to raise_error(NotImplementedError)
+    end
+  end
+
+  context "without validate_dynamic_card_presence implementation on transfer" do
+    before do
+      mock_validate_credentials
       mock_validate_transfer_missing_data
       mock_validate_transfer_valid_data
       mock_execute_transfer
@@ -117,6 +137,7 @@ RSpec.describe BankApi::Clients::BaseClient do
   context "without validate_transfer_missing_data implementation" do
     before do
       mock_validate_credentials
+      mock_validate_dynamic_card_presence
       mock_validate_transfer_valid_data
       mock_execute_transfer
     end
@@ -129,6 +150,7 @@ RSpec.describe BankApi::Clients::BaseClient do
   context "without validate_transfer_valid_data implementation" do
     before do
       mock_validate_credentials
+      mock_validate_dynamic_card_presence
       mock_validate_transfer_missing_data
       mock_execute_transfer
     end
@@ -141,6 +163,7 @@ RSpec.describe BankApi::Clients::BaseClient do
   context "without execute_transfer implementation" do
     before do
       mock_validate_credentials
+      mock_validate_dynamic_card_presence
       mock_validate_transfer_missing_data
       mock_validate_transfer_valid_data
     end

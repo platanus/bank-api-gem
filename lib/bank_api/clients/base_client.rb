@@ -18,6 +18,7 @@ module BankApi::Clients
 
     def transfer(transfer_data)
       validate_credentials
+      validate_dynamic_card_presence
       validate_transfer_missing_data(transfer_data)
       validate_transfer_valid_data(transfer_data)
       execute_transfer(transfer_data)
@@ -25,6 +26,7 @@ module BankApi::Clients
 
     def batch_transfers(transfers_data)
       validate_credentials
+      validate_dynamic_card_presence
       transfers_data.each do |transfer_data|
         validate_transfer_missing_data(transfer_data)
         validate_transfer_valid_data(transfer_data)
@@ -39,6 +41,10 @@ module BankApi::Clients
     end
 
     def validate_credentials
+      raise NotImplementedError
+    end
+
+    def validate_dynamic_card_presence
       raise NotImplementedError
     end
 
