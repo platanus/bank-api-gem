@@ -30,6 +30,10 @@ RSpec.describe BankApi::Clients::BaseClient do
     allow(subject).to receive(:execute_transfer)
   end
 
+  def mock_execute_pending_transfer
+    allow(subject).to receive(:execute_pending_transfer)
+  end
+
   def mock_execute_batch_transfers
     allow(subject).to receive(:execute_batch_transfers)
   end
@@ -84,6 +88,25 @@ RSpec.describe BankApi::Clients::BaseClient do
       expect(subject).to receive(:execute_transfer).with(transfer_data)
 
       subject.transfer(transfer_data)
+    end
+  end
+
+  describe "#pending_transfer" do
+    let(:trx_id) { "131313" }
+    let(:transfer_data) { { rut: "123456-7" } }
+
+    before do
+      mock_validate_credentials
+      mock_validate_dynamic_card_presence
+      mock_execute_pending_transfer
+    end
+
+    it "validates and executes pending_transfer" do
+      expect(subject).to receive(:validate_credentials)
+      expect(subject).to receive(:validate_dynamic_card_presence)
+      expect(subject).to receive(:execute_pending_transfer).with(trx_id, transfer_data)
+
+      subject.pending_transfer(trx_id, transfer_data)
     end
   end
 

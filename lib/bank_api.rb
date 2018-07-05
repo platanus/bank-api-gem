@@ -51,5 +51,10 @@ module BankApi
       Clients::BancoSecurity::CompanyClient.new(BankApi.configuration)
                                            .batch_transfers(transfers_data)
     end
+
+    def self.pending_company_transfer(trx_id, transfer_data = {})
+      Clients::BancoSecurity::CompanyClient.new(BankApi.configuration)
+                                           .pending_transfer(trx_id, transfer_data)
+    end
   end
 end

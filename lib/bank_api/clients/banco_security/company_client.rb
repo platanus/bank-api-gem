@@ -5,6 +5,7 @@ require 'bank_api/clients/base_client'
 require 'bank_api/clients/banco_security/concerns/deposits'
 require 'bank_api/clients/banco_security/concerns/login'
 require 'bank_api/clients/banco_security/concerns/transfers'
+require 'bank_api/clients/banco_security/concerns/pending_transfers'
 require 'bank_api/clients/navigation/banco_security/company_navigation'
 require 'bank_api/utils/banco_security'
 
@@ -13,6 +14,7 @@ module BankApi::Clients::BancoSecurity
     include BankApi::Clients::Navigation::BancoSecurity::CompanyNavigation
     include BankApi::Clients::BancoSecurity::Deposits
     include BankApi::Clients::BancoSecurity::Transfers
+    include BankApi::Clients::BancoSecurity::PendingTransfers
     include BankApi::Clients::BancoSecurity::Login
 
     def initialize(config = BankApi::Configuration.new)
@@ -36,6 +38,17 @@ module BankApi::Clients::BancoSecurity
       validate_deposits(deposits) unless deposits.empty?
       browser.close
       deposits
+    end
+
+    def execute_pending_transfer(trx_id, transfer_data = {})
+      login
+      goto_company_dashboard
+      goto_pending_transfers
+      pending_transfer = find_pending_transfer(trx_id)
+      raise ::BankApi::Transfer::InvalidTrxId, "Couldn't find transfer" if pending_transfer.nil?
+      select_pending_transfer(pending_transfer)
+      validate_pending_transfer_data(transfer_data)
+      fill_pending_transfer_coordinates
     end
 
     def execute_transfer(transfer_data)
@@ -66,6 +79,10 @@ module BankApi::Clients::BancoSecurity
 
     def company_batch_transfers(transfers_data)
       batch_transfers(transfers_data)
+    end
+
+    def pending_company_transfer(trx_id, transfer_data = {})
+      pending_transfer(trx_id, transfer_data)
     end
 
     def goto_frame(query: nil, should_reset: true)

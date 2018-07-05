@@ -260,6 +260,115 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     end
   end
 
+  describe "#pending_transfer" do
+    let(:trx_id) { "131313" }
+    let(:transfer_data) do
+      { rut: "12345678-9", account: "131313", origin: "1234567", amount: 1000 }
+    end
+
+    before do
+      mock_validate_credentials
+      mock_validate_dynamic_card_presence
+      mock_validate_transfer_missing_data
+      mock_validate_transfer_valid_data
+      mock_site_navigation
+    end
+
+    describe "validations" do
+      before { allow(subject).to receive(:execute_pending_transfer).with(trx_id, transfer_data) }
+
+      it "validates credentials" do
+        expect(subject).to receive(:validate_credentials)
+        subject.pending_transfer(trx_id, transfer_data)
+      end
+
+      it "validates dynamic card presence" do
+        expect(subject).to receive(:validate_dynamic_card_presence)
+        subject.pending_transfer(trx_id, transfer_data)
+      end
+    end
+
+    it "calls execute_pending_transfer" do
+      expect(subject).to receive(:execute_pending_transfer)
+      subject.pending_transfer(trx_id, transfer_data)
+    end
+
+    context "with missing transaction" do
+      before do
+        allow(subject).to receive(:find_pending_transfer).with(trx_id).and_return(nil)
+      end
+
+      it "returns the expected transfer" do
+        expect { subject.pending_transfer(trx_id, transfer_data) }.to raise_error(
+          ::BankApi::Transfer::InvalidTrxId, "Couldn't find transfer"
+        )
+      end
+    end
+
+    describe "#validate_pending_transfer_data" do
+      let(:expected_transfer) do
+        {
+          trx_id: "13131313", datetime: "01/01/2018 18:26", origin: "3333",
+          account: "2222", amount: 1000, input: double
+        }
+      end
+
+      before do
+        allow(subject).to receive(:find_pending_transfer).with(trx_id).and_return(expected_transfer)
+        allow(subject).to receive(:select_pending_transfer).with(expected_transfer)
+        allow(subject).to receive(:fill_pending_transfer_coordinates)
+      end
+
+      it "calls validate_pending_transfer_data" do
+        expect(subject).to receive(:validate_pending_transfer_data).with(transfer_data)
+
+        subject.pending_transfer(trx_id, transfer_data)
+      end
+    end
+
+    describe "#select_pending_transfer" do
+      let(:expected_transfer) do
+        {
+          trx_id: "13131313", datetime: "01/01/2018 18:26", origin: "3333",
+          account: "2222", amount: 1000, input: double
+        }
+      end
+
+      before do
+        allow(subject).to receive(:find_pending_transfer).with(trx_id).and_return(expected_transfer)
+        allow(subject).to receive(:validate_pending_transfer_data).with(transfer_data)
+        allow(subject).to receive(:fill_pending_transfer_coordinates)
+      end
+
+      it "calls select_pending_transfer" do
+        expect(subject).to receive(:select_pending_transfer).with(expected_transfer)
+
+        subject.pending_transfer(trx_id, transfer_data)
+      end
+    end
+
+    describe "#fill_pending_transfer_coordinates" do
+      let(:expected_transfer) do
+        {
+          trx_id: "13131313", datetime: "01/01/2018 18:26", origin: "3333",
+          account: "2222", amount: 1000, input: double
+        }
+      end
+
+      before do
+        allow(subject).to receive(:find_pending_transfer).with(trx_id).and_return(expected_transfer)
+        allow(subject).to receive(:select_pending_transfer).with(expected_transfer)
+        allow(subject).to receive(:validate_pending_transfer_data).with(transfer_data)
+      end
+
+      it "calls fill_pending_transfer_coordinates" do
+        expect(subject).to receive(:fill_pending_transfer_coordinates)
+
+        subject.pending_transfer(trx_id, transfer_data)
+      end
+    end
+  end
+
   describe "#batch_transfers" do
     let(:transfers_data) do
       [
@@ -361,6 +470,16 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       it "calls get_recent_deposits" do
         expect(subject).to receive(:batch_transfers).with(transfer_data)
         subject.company_batch_transfers(transfer_data)
+      end
+    end
+
+    describe "#pending_company_transfer" do
+      let(:trx_id) { double }
+      let(:transfer_data) { double }
+
+      it "calls get_recent_deposits" do
+        expect(subject).to receive(:pending_transfer).with(trx_id, transfer_data)
+        subject.pending_company_transfer(trx_id, transfer_data)
       end
     end
   end

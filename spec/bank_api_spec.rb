@@ -32,6 +32,13 @@ RSpec.describe BankApi do
       BankApi::BancoSecurity.company_batch_transfers([])
     end
 
+    it 'calls execute_pending_transfer BancoSecurity::CompanyClient' do
+      expect_any_instance_of(BankApi::Clients::BancoSecurity::CompanyClient)
+        .to receive(:pending_transfer).with('trx_id', {})
+
+      BankApi::BancoSecurity.pending_company_transfer('trx_id', {})
+    end
+
     context "with_credentials" do
       let(:credentials) { { user_rut: "2-k", password: "password", company_rut: "1-k" } }
 

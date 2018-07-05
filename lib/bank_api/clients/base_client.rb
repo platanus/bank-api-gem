@@ -24,6 +24,12 @@ module BankApi::Clients
       execute_transfer(transfer_data)
     end
 
+    def pending_transfer(trx_id, transfer_data = {})
+      validate_credentials
+      validate_dynamic_card_presence
+      execute_pending_transfer(trx_id, transfer_data)
+    end
+
     def batch_transfers(transfers_data)
       validate_credentials
       validate_dynamic_card_presence
