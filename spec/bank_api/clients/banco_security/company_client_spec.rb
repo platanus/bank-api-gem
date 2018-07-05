@@ -248,8 +248,8 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       subject.transfer(transfer_data)
     end
 
-    it "calls fill_coordinates" do
-      expect(subject).to receive(:fill_coordinates)
+    it "calls fill_transfer_coordinates" do
+      expect(subject).to receive(:fill_transfer_coordinates)
 
       subject.transfer(transfer_data)
     end
@@ -325,8 +325,8 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       subject.batch_transfers(transfers_data)
     end
 
-    it "calls fill_coordinates" do
-      expect(subject).to receive(:fill_coordinates).exactly(2).times
+    it "calls fill_transfer_coordinates" do
+      expect(subject).to receive(:fill_transfer_coordinates).exactly(2).times
 
       subject.batch_transfers(transfers_data)
     end

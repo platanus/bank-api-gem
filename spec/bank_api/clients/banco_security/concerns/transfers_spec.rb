@@ -49,8 +49,8 @@ RSpec.describe BankApi::Clients::BancoSecurity::Transfers, client: true do
     expect { dummy.submit_transfer_form(transfer_data) }.not_to raise_error
   end
 
-  it "implements fill_coordinates" do
-    expect { dummy.fill_coordinates }.not_to raise_error
+  it "implements fill_transfer_coordinates" do
+    expect { dummy.fill_transfer_coordinates }.not_to raise_error
   end
 
   describe "validations" do
@@ -124,6 +124,6 @@ RSpec.describe BankApi::Clients::BancoSecurity::Transfers, client: true do
   it "fills coordinates" do
     expect(div).to receive(:set).with('11').exactly(3).times
 
-    dummy.fill_coordinates
+    dummy.fill_transfer_coordinates
   end
 end

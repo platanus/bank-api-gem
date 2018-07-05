@@ -50,7 +50,7 @@ module BankApi::Clients::BancoSecurity
       browser.search('.active #Comentario').set(transfer_data[:comment])
     end
 
-    def fill_coordinates
+    def fill_transfer_coordinates
       browser.search("[name=\"clave-dinamica-radio\"][value=\"tarjeta-clave\"]").set
       (1..3).each do |i|
         coordinate = browser.search("label[for=\"coordenada-#{i}\"").text

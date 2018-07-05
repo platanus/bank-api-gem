@@ -43,7 +43,7 @@ module BankApi::Clients::BancoSecurity
       goto_company_dashboard(transfer_data[:origin] || @company_rut)
       goto_transfer_form
       submit_transfer_form(transfer_data)
-      fill_coordinates
+      fill_transfer_coordinates
     end
 
     def execute_batch_transfers(transfers_data)
@@ -52,7 +52,7 @@ module BankApi::Clients::BancoSecurity
         goto_company_dashboard(transfer_data[:origin] || @company_rut)
         goto_transfer_form
         submit_transfer_form(transfer_data)
-        fill_coordinates
+        fill_transfer_coordinates
       end
     end
 
