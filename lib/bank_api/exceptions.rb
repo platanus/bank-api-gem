@@ -6,7 +6,10 @@ module BankApi
   end
   module Transfer
     class InvalidBank < StandardError; end
+    class InvalidAmount < StandardError; end
     class InvalidAccountType < StandardError; end
+    class InvalidAccountData < StandardError; end
+    class InvalidTrxId < StandardError; end
     class MissingTransferData < StandardError; end
   end
 end

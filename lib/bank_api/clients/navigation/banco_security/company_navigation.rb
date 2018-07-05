@@ -34,6 +34,20 @@ module BankApi::Clients::Navigation
         )
       end
 
+      def goto_pending_transfers
+        goto_frame query: '#topFrame'
+        selenium_browser.execute_script(
+          "MM_goToURL('parent.frames[\\'topFrame\\']','../menu/MenuTopInicio.asp'," +
+            "'parent.frames[\\'leftFrame\\']','../menu/MenuInicio.asp'," +
+            "'parent.frames[\\'mainFrame\\']','../../../noticias/arriba_noticias.asp');"
+        )
+        selenium_browser.execute_script(
+          "MM_goToURL('parent.frames[\\'mainFrame\\']'," +
+            "'/empresas/cashmngfinal/op_sel.asp');"
+        )
+        goto_frame query: '#mainFrame'
+      end
+
       def goto_deposits
         goto_frame query: '#topFrame'
         selenium_browser.execute_script(
