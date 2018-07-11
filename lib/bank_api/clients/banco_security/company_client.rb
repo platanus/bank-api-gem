@@ -2,6 +2,7 @@ require 'cgi'
 require 'timezone'
 
 require 'bank_api/clients/base_client'
+require 'bank_api/clients/banco_security/concerns/statements'
 require 'bank_api/clients/banco_security/concerns/deposits'
 require 'bank_api/clients/banco_security/concerns/login'
 require 'bank_api/clients/banco_security/concerns/transfers'
@@ -11,6 +12,7 @@ require 'bank_api/utils/banco_security'
 module BankApi::Clients::BancoSecurity
   class CompanyClient < BankApi::Clients::BaseClient
     include BankApi::Clients::Navigation::BancoSecurity::CompanyNavigation
+    include BankApi::Clients::BancoSecurity::Statements
     include BankApi::Clients::BancoSecurity::Deposits
     include BankApi::Clients::BancoSecurity::Transfers
     include BankApi::Clients::BancoSecurity::Login
@@ -40,6 +42,16 @@ module BankApi::Clients::BancoSecurity
       browser.close
     end
 
+    def get_statement_of_month(account_number, month, year, company_rut)
+      login
+      goto_company_dashboard(company_rut || @company_rut)
+      goto_account_statements
+      select_statement(account_number, month, year)
+      account_statement_from_txt
+    ensure
+      browser.close
+    end
+
     def execute_transfer(transfer_data)
       login
       goto_company_dashboard(transfer_data[:origin] || @company_rut)
@@ -60,6 +72,12 @@ module BankApi::Clients::BancoSecurity
       end
     ensure
       browser.close
+    end
+
+    def get_company_statement(account_number:, month:, year:, company_rut: nil)
+      get_statement(
+        account_number: account_number, month: month, year: year, company_rut: company_rut
+      )
     end
 
     def goto_frame(query: nil, should_reset: true)

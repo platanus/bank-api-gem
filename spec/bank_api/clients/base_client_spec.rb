@@ -64,6 +64,34 @@ RSpec.describe BankApi::Clients::BaseClient do
     end
   end
 
+  describe "#get_statement" do
+    let(:account_number) { "000012345678" }
+    let(:company_rut) { "12.345.678-9" }
+    let(:month) { 1 }
+    let(:year) { 2018 }
+
+    it "validates credentials and returns statement" do
+      expect(subject).to receive(:validate_credentials)
+      expect(subject).to receive(:get_statement_of_month)
+      subject.get_statement(
+        account_number: account_number, month: month, year: year, company_rut: company_rut
+      )
+    end
+  end
+
+  describe "#get_statement_of_month" do
+    let(:account_number) { "000012345678" }
+    let(:company_rut) { "12.345.678-9" }
+    let(:month) { 1 }
+    let(:year) { 2018 }
+
+    it "raises error" do
+      expect do
+        subject.send(:get_statement_of_month, account_number, month, year, company_rut)
+      end.to raise_error(NotImplementedError)
+    end
+  end
+
   describe "#transfer" do
     before do
       mock_validate_credentials

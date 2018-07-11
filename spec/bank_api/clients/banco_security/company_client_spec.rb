@@ -2,20 +2,7 @@ require 'date'
 require 'spec_helper'
 
 RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
-  let(:txt_file) do
-    double(
-      content: "Fecha|Nombre emisor|RUT emisor|Cuenta origen|Banco origen|Monto|Asunto\n" +
-        "01/01/2018 01:15|PEPE|123456789|0000000011111|Banco Falabella|1000|\n" +
-        "01/01/2018 05:15|GARY|123456789|0000000011111|Banco Santander|2000|Hello\n" +
-        "01/01/2018 07:15|PEPE|123456789|0000000011111|Banco Falabella|3000|\n" +
-        "01/01/2018 08:00|PEPE|123456789|0000000011111|Banco Falabella|4000|\n"
-    )
-  end
-
-  let(:txt_url) { "https://file.txt" }
-
   let(:div) { double(text: 'text') }
-
   let(:browser) do
     double(
       config: {
@@ -33,9 +20,9 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     described_class.new(
       double(
         banco_security: double(
-          user_rut: '',
+          user_rut: '1.234.567-8',
           password: '',
-          company_rut: '',
+          company_rut: '8.765.432-1',
           page_size: 50,
           dynamic_card:  dynamic_card
         ),
@@ -44,26 +31,31 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     )
   end
 
-  before do
+  def mock_browser
     allow(subject).to receive(:browser).and_return(browser)
-    allow(subject).to receive(:selenium_browser).and_return(selenium_browser)
-    allow(subject).to receive(:deposits_txt_url).and_return(txt_url)
-
     allow(browser).to receive(:goto)
     allow(browser).to receive(:close)
     allow(browser).to receive(:search).and_return(div)
-    allow(browser).to receive(:download).with(txt_url).and_return(txt_file)
+  end
 
+  def mock_selenium_browser
+    allow(subject).to receive(:selenium_browser).and_return(selenium_browser)
+    allow(selenium_browser).to receive(:execute_script)
+  end
+
+  def mock_div
     allow(div).to receive(:click)
     allow(div).to receive(:set)
     allow(div).to receive(:any?).and_return(true)
     allow(div).to receive(:count).and_return(1)
+  end
 
+  def mock_wait
+    allow(subject).to receive(:wait).and_return(div)
+  end
+
+  def mock_dynamic_card
     allow(dynamic_card).to receive(:get_coordinate_value).and_return('11')
-
-    allow(selenium_browser).to receive(:execute_script)
-
-    mock_wait_for_deposits_fetch
   end
 
   def mock_validate_credentials
@@ -78,33 +70,42 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     allow(subject).to receive(:validate_transfer_valid_data)
   end
 
-  def mock_validate_deposits
-    allow(subject).to receive(:validate_deposits)
-  end
-
-  def mock_execute_transfer
-    allow(subject).to receive(:execute_transfer)
-  end
-
   def mock_site_navigation
     allow(subject).to receive(:login)
     allow(subject).to receive(:goto_company_dashboard)
+    allow(subject).to receive(:goto_account_statements)
     allow(subject).to receive(:goto_transfer_form)
     allow(subject).to receive(:submit_transfer_form)
   end
 
-  def mock_get_deposits
-    allow(subject).to receive(:get_deposits)
-  end
-
-  def mock_wait_for_deposits_fetch
-    allow(subject).to receive(:wait_for_deposits_fetch)
+  before do
+    mock_browser
+    mock_selenium_browser
+    mock_div
+    mock_wait
+    mock_dynamic_card
+    allow(subject).to receive(:sleep)
   end
 
   describe "get_recent_deposits" do
+    let(:txt_file) do
+      double(
+        content: "Fecha|Nombre emisor|RUT emisor|Cuenta origen|Banco origen|Monto|Asunto\n" +
+          "01/01/2018 01:15|PEPE|123456789|0000000011111|Banco Falabella|1000|\n" +
+          "01/01/2018 05:15|GARY|123456789|0000000011111|Banco Santander|2000|Hello\n" +
+          "01/01/2018 07:15|PEPE|123456789|0000000011111|Banco Falabella|3000|\n" +
+          "01/01/2018 08:00|PEPE|123456789|0000000011111|Banco Falabella|4000|\n"
+      )
+    end
+
+    let(:txt_url) { "https://file.txt" }
+
     before do
       mock_validate_credentials
       mock_site_navigation
+      allow(subject).to receive(:deposits_txt_url).and_return(txt_url)
+      allow(browser).to receive(:download).with(txt_url).and_return(txt_file)
+      allow(subject).to receive(:wait_for_deposits_fetch)
     end
 
     it 'validates and returns entries on get_recent_deposits' do
@@ -134,7 +135,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
     context 'validate_credentials implementation' do
       before do
-        mock_get_deposits
+        allow(subject).to receive(:get_deposits)
       end
 
       it "doesn't raise NotImplementedError" do
@@ -174,7 +175,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       before do
         mock_validate_credentials
         mock_site_navigation
-        mock_wait_for_deposits_fetch
+        allow(subject).to receive(:wait_for_deposits_fetch)
         allow(subject).to receive(:any_deposits?).and_return(true)
       end
 
@@ -222,6 +223,120 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     end
   end
 
+  describe "get_statement" do
+    let(:account_number) { "000012345678" }
+    let(:month) { 1 }
+    let(:year) { 2018 }
+
+    before do
+      mock_validate_credentials
+    end
+
+    describe "credentials validation" do
+      before { allow(subject).to receive(:get_statement_of_month).and_return([]) }
+
+      it "validates and returns statement" do
+        expect(subject).to receive(:validate_credentials)
+        expect(
+          subject.get_statement(account_number: account_number, month: month, year: year)
+        ).to eq([])
+      end
+
+      it "calls get_statement_of_month" do
+        expect(subject).to receive(:get_statement_of_month).with(account_number, month, year, nil)
+
+        subject.get_statement(account_number: account_number, month: month, year: year)
+      end
+    end
+  end
+
+  describe "get_statement_of_month" do
+    let(:account_number) { "000012345678" }
+    let(:company_rut) { "12.345.678-9" }
+    let(:month) { 1 }
+    let(:year) { 2018 }
+    let(:statement) do
+      [
+        {
+          date: Date.new(2018, 1, 2),
+          description: "TRANSFERENCIA DESDE BANCO SECURITY DE JUANA PEREZ",
+          trx_id: "000000001",
+          trx_type: :deposit,
+          amount: 1000,
+          balance: 1001000
+        }, {
+          date: Date.new(2018, 1, 3),
+          description: "TRANSFERENCIA DESDE BANCO FALABELLA DE JUAN PEREZ",
+          trx_id: "000000002",
+          trx_type: :charge,
+          amount: 2000,
+          balance: 999000
+        }
+      ]
+    end
+
+    before do
+      mock_validate_credentials
+      mock_site_navigation
+      allow(subject).to receive(:account_statement_from_txt).and_return(statement)
+    end
+
+    it "navigates to statement" do
+      expect(subject).to receive(:login)
+      expect(subject).to receive(:goto_company_dashboard).with('8.765.432-1')
+      expect(subject).to receive(:goto_account_statements)
+      subject.get_statement_of_month(account_number, month, year, nil)
+    end
+
+    context "with given company_rut" do
+      it "navigates to expected company dashboard" do
+        expect(subject).to receive(:goto_company_dashboard).with(company_rut)
+        subject.get_statement_of_month(account_number, month, year, company_rut)
+      end
+    end
+
+    describe "ensure browser.close" do
+      before do
+        expect(browser).to receive(:close)
+      end
+
+      context "without error" do
+        it "calls browser.close" do
+          subject.get_statement_of_month(account_number, month, year, nil)
+        end
+      end
+
+      context "with error" do
+        before do
+          allow(subject).to receive(:account_statement_from_txt).and_raise(StandardError)
+        end
+
+        it "calls browser.close" do
+          expect do
+            subject.get_statement_of_month(account_number, month, year, nil)
+          end.to raise_error(StandardError)
+        end
+      end
+    end
+  end
+
+  describe "get_company_statement" do
+    let(:account_number) { "000012345678" }
+    let(:company_rut) { "12.345.678-9" }
+    let(:month) { 1 }
+    let(:year) { 2018 }
+
+    it "calls get_statement" do
+      expect(subject).to receive(:get_statement).with(
+        account_number: account_number, month: month, year: year, company_rut: company_rut
+      )
+
+      subject.get_company_statement(
+        account_number: account_number, month: month, year: year, company_rut: company_rut
+      )
+    end
+  end
+
   describe "#transfer" do
     let(:transfer_data) do
       {
@@ -262,7 +377,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
     context "without origin in transfer_data" do
       it "goes to @company_rut's dashboard" do
-        expect(subject).to receive(:goto_company_dashboard).with('')
+        expect(subject).to receive(:goto_company_dashboard).with('8.765.432-1')
 
         subject.transfer(transfer_data)
       end
@@ -363,7 +478,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
     context "without origin in transfer_data" do
       it "goes to @company_rut's dashboard" do
-        expect(subject).to receive(:goto_company_dashboard).with('').exactly(2).times
+        expect(subject).to receive(:goto_company_dashboard).with('8.765.432-1').exactly(2).times
 
         subject.batch_transfers(transfers_data)
       end

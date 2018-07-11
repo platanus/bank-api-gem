@@ -17,6 +17,18 @@ RSpec.describe BankApi do
     BankApi::BancoSecurity.get_recent_company_deposits
   end
 
+  it 'calls get_statement on BancoSecurity::CompanyClient' do
+    expect_any_instance_of(BankApi::Clients::BancoSecurity::CompanyClient)
+      .to receive(:get_statement)
+
+    BankApi::BancoSecurity.get_company_statement(
+      account_number: "000012345678",
+      company_rut: "12.345.678-9",
+      month: 1,
+      year: 2018
+    )
+  end
+
   it 'calls transfer on  BancoSecurity::CompanyClient' do
     expect_any_instance_of(BankApi::Clients::BancoSecurity::CompanyClient)
       .to receive(:transfer)

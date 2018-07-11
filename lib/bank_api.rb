@@ -3,6 +3,8 @@ require "bank_api/configs/banco_security"
 require "bank_api/version"
 require 'bank_api/clients/banco_de_chile_company_client'
 require 'bank_api/clients/banco_security/company_client'
+require 'bank_api/utils/rut'
+require 'bank_api/utils/account'
 
 module BankApi
   class << self
@@ -28,6 +30,16 @@ module BankApi
   module BancoSecurity
     def self.get_recent_company_deposits
       Clients::BancoSecurity::CompanyClient.new(BankApi.configuration).get_recent_deposits
+    end
+
+    def self.get_company_statement(account_number:, month:, year:, company_rut: nil)
+      Clients::BancoSecurity::CompanyClient.new(BankApi.configuration)
+                                           .get_statement(
+                                             account_number: account_number,
+                                             month: month,
+                                             year: year,
+                                             company_rut: company_rut
+                                           )
     end
 
     def self.company_transfer(transfer_data)
