@@ -32,6 +32,14 @@ module BankApi
       Clients::BancoSecurity::CompanyClient.new(BankApi.configuration).get_recent_deposits
     end
 
+    def self.get_company_current_statement(account_number:, company_rut: nil)
+      Clients::BancoSecurity::CompanyClient.new(BankApi.configuration)
+                                           .get_current_statement(
+                                             account_number,
+                                             company_rut
+                                           )
+    end
+
     def self.get_company_statement(account_number:, month:, year:, company_rut: nil)
       Clients::BancoSecurity::CompanyClient.new(BankApi.configuration)
                                            .get_statement(
