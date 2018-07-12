@@ -16,6 +16,11 @@ module BankApi::Clients
       parse_entries(get_deposits)
     end
 
+    def get_current_statement(account_number:, company_rut: nil)
+      validate_credentials
+      get_current_statement_of_account(account_number, company_rut)
+    end
+
     def get_statement(account_number:, month:, year:, company_rut: nil)
       validate_credentials
       get_statement_of_month(account_number, month, year, company_rut)
@@ -48,6 +53,10 @@ module BankApi::Clients
     end
 
     def get_deposits
+      raise NotImplementedError
+    end
+
+    def get_current_statement_of_account(_account_number, _company_rut)
       raise NotImplementedError
     end
 

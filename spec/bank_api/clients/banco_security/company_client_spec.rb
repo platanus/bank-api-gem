@@ -223,8 +223,113 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     end
   end
 
+  describe "get_current_statement" do
+    let(:account_number) { "000012345678" }
+    let(:company_rut) { "88.888.888-8" }
+
+    before do
+      mock_validate_credentials
+    end
+
+    describe "credentials validation" do
+      before { allow(subject).to receive(:get_current_statement_of_account).and_return([]) }
+
+      it "validates and returns statement" do
+        expect(subject).to receive(:validate_credentials)
+        expect(
+          subject.get_current_statement(account_number: account_number)
+        ).to eq([])
+      end
+
+      it "calls get_current_statement_of_account" do
+        expect(subject).to receive(:get_current_statement_of_account).with(account_number, nil)
+
+        subject.get_current_statement(account_number: account_number)
+      end
+
+      context "with given company_rut" do
+        it "calls get_current_statement_of_account" do
+          expect(subject).to receive(:get_current_statement_of_account)
+            .with(account_number, company_rut)
+
+          subject.get_current_statement(account_number: account_number, company_rut: company_rut)
+        end
+      end
+    end
+  end
+
+  describe "get_current_statement_of_account" do
+    let(:account_number) { "000012345678" }
+    let(:company_rut) { "12.345.678-9" }
+    let(:statement) do
+      [
+        {
+          date: Date.new(2018, 1, 1),
+          description: "Transferencia",
+          trx_id: "0000000001",
+          trx_type: :deposit,
+          amount: 500_000,
+          balance: 10_000_000
+        }, {
+          date: Date.new(2018, 1, 2),
+          description: "Transferencia",
+          trx_id: "0000000002",
+          trx_type: :charge,
+          amount: 500_000,
+          balance: 9_500_000
+        }
+      ]
+    end
+
+    before do
+      mock_validate_credentials
+      mock_site_navigation
+      allow(subject).to receive(:select_current_statement)
+      allow(subject).to receive(:account_current_statement_from_txt).and_return(statement)
+    end
+
+    it "navigates to statement" do
+      expect(subject).to receive(:login)
+      expect(subject).to receive(:goto_company_dashboard).with('8.765.432-1')
+      expect(subject).to receive(:goto_current_statement)
+      subject.get_current_statement_of_account(account_number, nil)
+    end
+
+    context "with given company_rut" do
+      it "navigates to expected company dashboard" do
+        expect(subject).to receive(:goto_company_dashboard).with(company_rut)
+        subject.get_current_statement_of_account(account_number, company_rut)
+      end
+    end
+
+    describe "ensure browser.close" do
+      before do
+        expect(browser).to receive(:close)
+      end
+
+      context "without error" do
+        it "calls browser.close" do
+          subject.get_current_statement_of_account(account_number, nil)
+        end
+      end
+
+      context "with error" do
+        before do
+          allow(subject).to receive(:account_current_statement_from_txt).and_raise(StandardError)
+        end
+
+        it "calls browser.close" do
+          expect do
+            subject.get_current_statement_of_account(account_number, nil)
+          end.to raise_error(StandardError)
+        end
+      end
+    end
+  end
+
   describe "get_statement" do
     let(:account_number) { "000012345678" }
+    let(:company_rut) { "88.888.888-8" }
     let(:month) { 1 }
     let(:year) { 2018 }
 
@@ -246,6 +351,17 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
         expect(subject).to receive(:get_statement_of_month).with(account_number, month, year, nil)
 
         subject.get_statement(account_number: account_number, month: month, year: year)
+      end
+
+      context "with given company_rut" do
+        it "calls get_statement_of_month" do
+          expect(subject).to receive(:get_statement_of_month)
+            .with(account_number, month, year, company_rut)
+
+          subject.get_statement(
+            account_number: account_number, month: month, year: year, company_rut: company_rut
+          )
+        end
       end
     end
   end
@@ -317,6 +433,21 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
           end.to raise_error(StandardError)
         end
       end
+    end
+  end
+
+  describe "get_company_current_statement" do
+    let(:account_number) { "000012345678" }
+    let(:company_rut) { "12.345.678-9" }
+
+    it "calls get_statement" do
+      expect(subject).to receive(:get_current_statement).with(
+        account_number: account_number, company_rut: company_rut
+      )
+
+      subject.get_company_current_statement(
+        account_number: account_number, company_rut: company_rut
+      )
     end
   end
 

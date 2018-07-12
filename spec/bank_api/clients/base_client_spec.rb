@@ -64,6 +64,28 @@ RSpec.describe BankApi::Clients::BaseClient do
     end
   end
 
+  describe "#get_current_statement" do
+    let(:account_number) { "000012345678" }
+    let(:company_rut) { "12.345.678-9" }
+
+    it "validates credentials and returns statement" do
+      expect(subject).to receive(:validate_credentials)
+      expect(subject).to receive(:get_current_statement_of_account)
+      subject.get_current_statement(account_number: account_number, company_rut: company_rut)
+    end
+  end
+
+  describe "#get_statement_of_account" do
+    let(:account_number) { "000012345678" }
+    let(:company_rut) { "12.345.678-9" }
+
+    it "raises error" do
+      expect do
+        subject.send(:get_current_statement_of_account, account_number, company_rut)
+      end.to raise_error(NotImplementedError)
+    end
+  end
+
   describe "#get_statement" do
     let(:account_number) { "000012345678" }
     let(:company_rut) { "12.345.678-9" }

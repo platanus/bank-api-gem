@@ -42,6 +42,16 @@ module BankApi::Clients::BancoSecurity
       browser.close
     end
 
+    def get_current_statement_of_account(account_number, company_rut)
+      login
+      goto_company_dashboard(company_rut || @company_rut)
+      goto_current_statement
+      select_current_statement(account_number)
+      account_current_statement_from_txt
+    ensure
+      browser.close
+    end
+
     def get_statement_of_month(account_number, month, year, company_rut)
       login
       goto_company_dashboard(company_rut || @company_rut)
@@ -72,6 +82,12 @@ module BankApi::Clients::BancoSecurity
       end
     ensure
       browser.close
+    end
+
+    def get_company_current_statement(account_number:, company_rut: nil)
+      get_current_statement(
+        account_number: account_number, company_rut: company_rut
+      )
     end
 
     def get_company_statement(account_number:, month:, year:, company_rut: nil)
