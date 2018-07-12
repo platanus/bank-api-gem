@@ -9,16 +9,27 @@ module BankApi::Clients::BancoSecurity
     AMOUNT_CHARACTERS = (72..86)
     BALANCE_CHARACTERS = (87..101)
 
-    def goto_account_statements
-      goto_frame query: '#leftFrame'
-      selenium_browser.execute_script(
-        "MM_goToURL(" +
-        "'parent.frames[\\'mainFrame\\']'," +
-        "'/empresas/cashmngfinal/cuenta_corriente/cuenta_historica_sel.asp?COD_SRV=1311'" +
-        ");"
-      )
-      goto_frame query: '#mainFrame'
-      wait(".Tit1:contains('cartola histórica')")
+    DATE_COLUMN = 0
+    DESCRIPTION_COLUMN = 1
+    TRX_ID_COLUMN = 2
+    CHARGE_COLUMN = 3
+    DEPOSIT_COLUMN = 4
+    BALANCE_COLUMN = 5
+
+    def select_current_statement(account_number)
+      formated_account_number = Utils::Account.format_account(account_number)
+      if browser.search(".cuentas-corrientes").any?
+        accounts = browser.search(".cuentas-corrientes").map do |row|
+          row.search("td").first.search("a")
+        end
+        account = accounts.find { |a| a.text == formated_account_number }
+        raise StandardError, "Statement of given account number is unavailable" if account.nil?
+        account.click
+        wait("#datos-cuenta")
+      end
+      if browser.search("#datos-cuenta").attribute("data-numero-cuenta") != formated_account_number
+        raise StandardError, "Statement of given account number is unavailable"
+      end
     end
 
     def select_statement(account_number, month, year)
@@ -31,13 +42,22 @@ module BankApi::Clients::BancoSecurity
       formated_account_number = Utils::Account.format_account(account_number)
       wait("select[name=\"Keyword\"]").set formated_account_number
     rescue
-      raise StandardError, "Statement of given account doesn't exist"
+      raise StandardError, "Statement of given account number is unavailable"
     end
 
     def select_month(month, year)
       wait("select[name=\"fecha\"]").set by_value: "#{month.to_s.rjust(2, '0')}#{year}"
     rescue
-      raise StandardError, "Statement of given month and year doesn't exist"
+      raise StandardError, "Statement of given month and year is unavailable"
+    end
+
+    def account_current_statement_from_txt
+      dl = browser.search("a:contains('Descargar TXT')").download
+      dl.content.delete("\r").split("\n")[3..-9].map do |row|
+        parse_current_statement_movements(row.split(";"))
+      end
+    rescue
+      raise StandardError, "Statement of given account number is unavailable"
     end
 
     def account_statement_from_txt
@@ -55,6 +75,17 @@ module BankApi::Clients::BancoSecurity
       browser.search("b:contains('No existen movimientos para el periodo seleccionado')").none?
     end
 
+    def parse_current_statement_movements(row)
+      {
+        date: Date.parse(row[DATE_COLUMN].split("/").reverse.join("/")),
+        description: row[DESCRIPTION_COLUMN].strip.force_encoding("utf-8"),
+        trx_id: row[TRX_ID_COLUMN].strip,
+        trx_type: current_statement_trx_type(row),
+        amount: [row[CHARGE_COLUMN].delete(",").to_i, row[DEPOSIT_COLUMN].delete(",").to_i].max,
+        balance: row[BALANCE_COLUMN].delete(",").to_i
+      }
+    end
+
     def parse_statement_movements(row)
       {
         date: Date.parse(row[DATE_CHARACTERS]),
@@ -64,6 +95,12 @@ module BankApi::Clients::BancoSecurity
         amount: row[AMOUNT_CHARACTERS].to_i,
         balance: row[BALANCE_CHARACTERS].to_i
       }
+    end
+
+    def current_statement_trx_type(row)
+      return :deposit if row[DEPOSIT_COLUMN].to_i.positive?
+      return :charge if row[CHARGE_COLUMN].to_i.positive?
+      raise StandardError, "Trx with non positive deposit and charge"
     end
 
     def statement_trx_type(row)

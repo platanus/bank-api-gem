@@ -50,6 +50,32 @@ module BankApi::Clients::Navigation
         wait('a.k-link:contains("Recibidas")').click
       end
 
+      def goto_account_statements
+        goto_frame query: '#leftFrame'
+        selenium_browser.execute_script(
+          "MM_goToURL(" +
+          "'parent.frames[\\'mainFrame\\']'," +
+          "'/empresas/cashmngfinal/cuenta_corriente/cuenta_historica_sel.asp?COD_SRV=1311'" +
+          ");"
+        )
+        goto_frame query: '#mainFrame'
+        wait(".Tit1:contains('cartola histórica')")
+      end
+
+      def goto_current_statement
+        goto_frame query: '#leftFrame'
+        selenium_browser.execute_script(
+          "MM_goToURL(" +
+          "'parent.frames[\\'mainFrame\\']'," +
+          "'/empresas/RedirectConvivencia.asp?" +
+          "urlRedirect=Cartola/Home/CartolaOrSaldoCuentaCorriente'" +
+          ");"
+        )
+        goto_frame query: '#mainFrame'
+        goto_frame(query: 'iframe[name="central"]', should_reset: false)
+        wait("h1:contains('Cuenta Corriente')")
+      end
+
       def goto_transfer_form
         goto_frame query: '#topFrame'
         selenium_browser.execute_script(
