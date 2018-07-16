@@ -33,7 +33,7 @@ module BankApi::Clients::BancoSecurity
       transactions.map do |t|
         {
           rut: format_rut(t[RUT_COLUMN]),
-          date: Date.parse(t[DATE_COLUMN].split[0]),
+          date: timezone.local_to_utc(DateTime.parse(t[DATE_COLUMN])).to_date,
           amount: t[AMOUNT_COLUMN].to_i
         }
       end
@@ -41,7 +41,6 @@ module BankApi::Clients::BancoSecurity
 
     def deposit_range
       @deposit_range ||= begin
-        timezone = Timezone['America/Santiago']
         today = timezone.utc_to_local(Time.now).to_date
         { start: (today - @days_to_check), end: today }
       end
@@ -81,6 +80,10 @@ module BankApi::Clients::BancoSecurity
         raise BankApi::Deposit::QuantityError, "Expected #{total_deposits_} deposits," +
           " got #{deposits.count}."
       end
+    end
+
+    def timezone
+      @timezone ||= Timezone['America/Santiago']
     end
   end
 end
