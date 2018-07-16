@@ -8,7 +8,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
         "01/01/2018 01:15|PEPE|123456789|0000000011111|Banco Falabella|1000|\n" +
         "01/01/2018 05:15|GARY|123456789|0000000011111|Banco Santander|2000|Hello\n" +
         "01/01/2018 07:15|PEPE|123456789|0000000011111|Banco Falabella|3000|\n" +
-        "01/01/2018 08:00|PEPE|123456789|0000000011111|Banco Falabella|4000|\n"
+        "01/01/2018 21:00|PEPE|123456789|0000000011111|Banco Falabella|4000|\n"
     )
   end
 
@@ -123,7 +123,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
           },
           {
             rut: '12.345.678-9',
-            date: Date.parse('01/01/2018'),
+            date: Date.parse('02/01/2018'),
             amount: 4000
           }
         ]
