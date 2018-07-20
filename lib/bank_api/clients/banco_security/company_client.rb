@@ -2,6 +2,7 @@ require 'cgi'
 require 'timezone'
 
 require 'bank_api/clients/base_client'
+require 'bank_api/clients/banco_security/concerns/balance'
 require 'bank_api/clients/banco_security/concerns/deposits'
 require 'bank_api/clients/banco_security/concerns/login'
 require 'bank_api/clients/banco_security/concerns/transfers'
@@ -11,6 +12,7 @@ require 'bank_api/utils/banco_security'
 module BankApi::Clients::BancoSecurity
   class CompanyClient < BankApi::Clients::BaseClient
     include BankApi::Clients::Navigation::BancoSecurity::CompanyNavigation
+    include BankApi::Clients::BancoSecurity::Balance
     include BankApi::Clients::BancoSecurity::Deposits
     include BankApi::Clients::BancoSecurity::Transfers
     include BankApi::Clients::BancoSecurity::Login
@@ -26,6 +28,13 @@ module BankApi::Clients::BancoSecurity
 
     def bank_name
       :security
+    end
+
+    def get_balance(account_number)
+      login
+      goto_company_dashboard
+      goto_balance
+      find_account_balance(account_number)
     end
 
     def get_deposits

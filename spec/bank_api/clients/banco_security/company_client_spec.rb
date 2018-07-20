@@ -19,8 +19,8 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
   let(:browser) do
     double(
       config: {
-        wait_timeout: 5.0,
-        wait_interval: 0.5
+        wait_timeout: 1.0,
+        wait_interval: 0.1
       }
     )
   end
@@ -44,6 +44,10 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     )
   end
 
+  let(:first_row) { double }
+  let(:second_row) { double }
+  let(:table) { [first_row, second_row] }
+
   before do
     allow(subject).to receive(:browser).and_return(browser)
     allow(subject).to receive(:selenium_browser).and_return(selenium_browser)
@@ -64,6 +68,17 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     allow(selenium_browser).to receive(:execute_script)
 
     mock_wait_for_deposits_fetch
+    mock_table
+  end
+
+  def mock_table
+    allow(div).to receive(:search).with('tbody tr').and_return(table)
+    allow(first_row).to receive(:search).with("td").and_return(
+      [double(text: "11"), double(text: "$ 1.000"), double(text: "$ 2.000")]
+    )
+    allow(second_row).to receive(:search).with("td").and_return(
+      [double(text: "12"), double(text: "$ 4.000"), double(text: "$ 6.000")]
+    )
   end
 
   def mock_validate_credentials
@@ -406,6 +421,33 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
         it "calls browser.close" do
           expect { subject.batch_transfers(transfers_data) }.to raise_error(StandardError)
         end
+      end
+    end
+  end
+
+  describe "account_balance" do
+    context "with present account_number" do
+      it "returns expected balance" do
+        expect(subject.find_account_balance("11")).to eq(
+          account_number: "11",
+          available_balance: 1000,
+          countable_balance: 2000
+        )
+
+        expect(subject.find_account_balance("12")).to eq(
+          account_number: "12",
+          available_balance: 4000,
+          countable_balance: 6000
+        )
+      end
+    end
+
+    context "without present account_number" do
+      it "returns expected balance" do
+        expect { subject.find_account_balance("1") }.to raise_error(
+          BankApi::Balance::InvalidAccountNumber,
+          "Couldn't find balance of account 1"
+        )
       end
     end
   end
