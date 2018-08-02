@@ -1,3 +1,4 @@
+require 'rest-client'
 require 'timezone'
 
 require 'bank_api/clients/base_client'
@@ -6,8 +7,7 @@ module BankApi::Clients
   class BancoDeChileCompanyClient < BaseClient
     COMPANY_LOGIN_URL = 'https://www.empresas.bancochile.cl/cgi-bin/navega?pagina=enlinea/login_fus'
     COMPANY_DEPOSITS_URL = 'https://www.empresas.bancochile.cl/GlosaInternetEmpresaRecibida/ConsultaRecibidaAction.do'
-
-    TABLE_OFFSET = 1
+    COMPANY_DEPOSITS_TXT_URL = 'https://www.empresas.bancochile.cl/GlosaInternetEmpresaRecibida/RespuestaConsultaRecibidaAction.do'
 
     DATE_COLUMN = 0
     RUT_COLUMN = 4
@@ -39,18 +39,11 @@ module BankApi::Clients
 
     def get_deposits
       login
-      deposits_first_try = get_deposits_try
-      deposits_second_try = get_deposits_try
-      deposits_first_try == deposits_second_try ? deposits_first_try : []
-    ensure
-      browser.close
-    end
-
-    def get_deposits_try
       goto_deposits
       select_deposits_range
-      submit_deposits_form
-      extract_deposits_from_html
+      deposits = deposits_from_txt
+      browser.close
+      deposits
     end
 
     def login
@@ -80,14 +73,7 @@ module BankApi::Clients
     end
 
     def select_deposits_range
-      timezone = Timezone['America/Santiago']
-      range_start = (
-        timezone.utc_to_local(Time.now).to_date - @days_to_check
-      ).strftime("%d/%m/%Y")
-      browser.search('input[name=initDate]').set(range_start)
-    end
-
-    def submit_deposits_form
+      browser.search('input[name=initDate]').set(deposit_range[:start])
       browser.search('#consultar').click
     end
 
@@ -95,46 +81,69 @@ module BankApi::Clients
       browser.search('table#sin_datos').count.zero?
     end
 
-    def extract_deposits_from_html
-      deposits = []
-
-      return deposits unless any_deposits?
-
-      deposits += deposits_from_page
-
-      ((total_results - 1) / 10).times do
-        goto_next_page
-        deposits += deposits_from_page
-      end
-
-      deposits.sort_by { |d| d[:date] }
-    end
-
-    def deposits_from_page
-      deposits = []
-      deposit = {}
-      browser.search('.linea1tabla').each_with_index do |div, index|
-        if ((index - TABLE_OFFSET) % NUMBER_OF_COLUMNS) == RUT_COLUMN
-          deposit[:rut] = div.text
-        elsif ((index - TABLE_OFFSET) % NUMBER_OF_COLUMNS) == DATE_COLUMN
-          deposit[:date] = Date.parse div.text
-        elsif ((index - TABLE_OFFSET) % NUMBER_OF_COLUMNS) == AMOUNT_COLUMN
-          deposit[:amount] = div.text.delete(',')
-        elsif ((index - TABLE_OFFSET) % NUMBER_OF_COLUMNS) == STATE_COLUMN
-          deposits << deposit if div.text == 'Aprobada'
-          deposit = {}
-        end
-      end
-      deposits
-    end
-
-    def goto_next_page
-      browser.search("#pager .next").click
-    end
-
     def total_results
       browser.search("#pager .encabezadotabla:contains(\"Operaciones encontradas\")")
              .text[/\d+/].to_i
+    end
+
+    def deposits_from_txt
+      return [] unless any_deposits?
+      response = RestClient.post(
+        COMPANY_DEPOSITS_TXT_URL,
+        deposits_params(deposit_range[:start], deposit_range[:end]),
+        session_headers
+      )
+      transactions = split_transactions(response.body)
+      format_transactions(transactions)
+    end
+
+    def split_transactions(transactions_str)
+      transactions_str.delete("\r").split("\n").drop(1).map { |r| r.split(";") }.select do |t|
+        t[STATE_COLUMN] == "Aprobada"
+      end
+    end
+
+    def format_transactions(transactions)
+      transactions.map do |t|
+        {
+          rut: t[RUT_COLUMN],
+          date: Date.parse(t[DATE_COLUMN]),
+          amount: t[AMOUNT_COLUMN].to_i
+        }
+      end
+    end
+
+    def deposits_params(from_date, to_date)
+      {
+        'accion' => 'exportarTxtOperaciones',
+        'initDate' => from_date,
+        'endDate' => to_date,
+        'ctaCorriente' => 'TODAS',
+        'nada' => 'nada'
+      }
+    end
+
+    def session_headers
+      {
+        "Cookie" => "JSESSIONID=#{cookie('JSESSIONID')}; token=#{cookie('token')}",
+        "Content-Type" => "application/x-www-form-urlencoded",
+        "Accept" => "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/" +
+          "apng,*/*;q=0.8",
+        "Referer" => "https://www.empresas.bancochile.cl/GlosaInternetEmpresaRecibida/" +
+          "RespuestaConsultaRecibidaAction.do"
+      }
+    end
+
+    def cookie(name)
+      selenium_browser.manage.cookie_named(name)[:value]
+    end
+
+    def deposit_range
+      @deposit_range ||= begin
+        timezone = Timezone['America/Santiago']
+        today = timezone.utc_to_local(Time.now).to_date
+        { start: (today - @days_to_check).strftime("%d/%m/%Y"), end: today.strftime("%d/%m/%Y") }
+      end
     end
   end
 end
