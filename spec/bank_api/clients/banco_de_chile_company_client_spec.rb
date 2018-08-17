@@ -97,6 +97,18 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
 
       subject.get_recent_deposits
     end
+
+    context "with navigation error" do
+      before do
+        allow(subject).to receive(:goto_deposits).and_raise StandardError, "timeout"
+      end
+
+      it "closes the browser" do
+        expect(browser).to receive(:close)
+
+        expect { subject.get_recent_deposits }.to raise_error
+      end
+    end
   end
 
   context 'validate_credentials implementation' do
