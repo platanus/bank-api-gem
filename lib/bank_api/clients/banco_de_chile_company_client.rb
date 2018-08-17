@@ -42,8 +42,9 @@ module BankApi::Clients
       goto_deposits
       select_deposits_range
       deposits = deposits_from_txt
-      browser.close
       deposits
+    ensure
+      browser.close
     end
 
     def login
