@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    bank_api (0.4.1)
+    bank_api (0.4.2)
       pincers
       rest-client
       timezone (~> 1.0)
@@ -20,9 +20,9 @@ GEM
     http-cookie (1.0.3)
       domain_name (~> 0.5)
     method_source (0.9.0)
-    mime-types (3.1)
+    mime-types (3.2.2)
       mime-types-data (~> 3.2015)
-    mime-types-data (3.2016.0521)
+    mime-types-data (3.2018.0812)
     mini_portile2 (2.3.0)
     netrc (0.11.0)
     nokogiri (1.8.4)
