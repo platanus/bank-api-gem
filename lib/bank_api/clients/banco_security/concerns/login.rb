@@ -20,7 +20,7 @@ module BankApi::Clients::BancoSecurity
     end
 
     def click_login_button
-      browser.search('input[name="Entrar"]').click
+      browser.search('.btn-ingreso').click
     end
   end
 end
