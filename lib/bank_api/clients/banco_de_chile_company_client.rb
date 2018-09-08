@@ -89,11 +89,11 @@ module BankApi::Clients
 
     def deposits_from_txt
       return [] unless any_deposits?
-      response = RestClient.post(
-        COMPANY_DEPOSITS_TXT_URL,
-        deposits_params(deposit_range[:start], deposit_range[:end]),
-        session_headers
+      response = RestClient::Request.execute(
+        url: COMPANY_DEPOSITS_TXT_URL, method: :post, headers: session_headers,
+        payload: deposits_params(deposit_range[:start], deposit_range[:end]), verify_ssl: false
       )
+
       transactions = split_transactions(response.body)
       format_transactions(transactions)
     end
@@ -130,6 +130,7 @@ module BankApi::Clients
         "Content-Type" => "application/x-www-form-urlencoded",
         "Accept" => "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/" +
           "apng,*/*;q=0.8",
+        "Accept-Encoding" => "gzip, deflate, br",
         "Referer" => "https://www.empresas.bancochile.cl/GlosaInternetEmpresaRecibida/" +
           "RespuestaConsultaRecibidaAction.do"
       }
