@@ -42,7 +42,6 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
     allow(browser).to receive(:search).and_return(div)
     allow(browser).to receive(:search).with('table#sin_datos').and_return([])
 
-    Net::HTTP.new(uri.host, uri.port)
     allow(RestClient::Request).to receive(:execute).with(
       url: described_class::COMPANY_DEPOSITS_TXT_URL, method: :post, headers: session_headers,
       payload: params, verify_ssl: false
