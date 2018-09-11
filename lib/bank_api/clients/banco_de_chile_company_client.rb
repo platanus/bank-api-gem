@@ -20,6 +20,7 @@ module BankApi::Clients
       @bdc_company_rut = config.bdc_company_rut
       @bdc_user_rut = config.bdc_user_rut
       @bdc_password = config.bdc_password
+      @bdc_account = config.bdc_account
       super
     end
 
@@ -75,11 +76,21 @@ module BankApi::Clients
 
     def select_deposits_range
       browser.search('input[name=initDate]').set(deposit_range[:start])
+      first_account = browser.search("select[name=ctaCorriente] option").find do |account|
+        account.value.include? @bdc_account
+      end.value
+      browser.search("select[name=ctaCorriente]").set by_value: first_account
       browser.search('#consultar').click
     end
 
+    def validate_banchile_status!
+      unless browser.search(".textoerror:contains('no podemos atenderle')").none?
+        raise "Banchile is down"
+      end
+    end
+
     def any_deposits?
-      browser.search('table#sin_datos').count.zero?
+      browser.search('table#sin_datos').none?
     end
 
     def total_results
@@ -88,14 +99,19 @@ module BankApi::Clients
     end
 
     def deposits_from_txt
+      validate_banchile_status!
       return [] unless any_deposits?
       response = RestClient::Request.execute(
         url: COMPANY_DEPOSITS_TXT_URL, method: :post, headers: session_headers,
         payload: deposits_params(deposit_range[:start], deposit_range[:end]), verify_ssl: false
       )
+      raise "Banchile is down" if response.body.include? "no podemos atenderle"
 
       transactions = split_transactions(response.body)
       format_transactions(transactions)
+    rescue => e
+      validate_banchile_status!
+      raise e
     end
 
     def split_transactions(transactions_str)
