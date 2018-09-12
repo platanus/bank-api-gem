@@ -37,14 +37,15 @@ module BankApi::Clients::BancoSecurity
       find_account_balance(account_number)
     end
 
-    def get_deposits
+    def get_deposits(options = {})
       login
       goto_company_dashboard
-      goto_deposits
-      select_deposits_range
-      deposits = deposits_from_txt
-      validate_deposits(deposits) unless deposits.empty?
-      deposits
+
+      if options[:source] == :account_details
+        return get_deposits_from_balance_section(options[:account_number])
+      end
+
+      get_deposits_from_transfers_section
     ensure
       browser.close
     end
@@ -69,6 +70,21 @@ module BankApi::Clients::BancoSecurity
       end
     ensure
       browser.close
+    end
+
+    def get_deposits_from_transfers_section
+      goto_deposits
+      select_deposits_range
+      deposits = deposits_from_txt
+      validate_deposits(deposits) unless deposits.empty?
+      deposits
+    end
+
+    def get_deposits_from_balance_section(account_number)
+      fail "missing :account_number option" unless account_number
+      goto_balance
+      goto_account_details(account_number.to_s)
+      deposits_from_account_details
     end
 
     def goto_frame(query: nil, should_reset: true)

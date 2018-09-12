@@ -11,9 +11,9 @@ module BankApi::Clients
       @days_to_check = config.days_to_check
     end
 
-    def get_recent_deposits
+    def get_recent_deposits(options = {})
       validate_credentials
-      parse_entries(get_deposits)
+      parse_entries(get_deposits(options))
     end
 
     def transfer(transfer_data)
@@ -42,7 +42,7 @@ module BankApi::Clients
       raise NotImplementedError
     end
 
-    def get_deposits
+    def get_deposits(_options = {})
       raise NotImplementedError
     end
 
@@ -122,8 +122,10 @@ module BankApi::Clients
         BankApi::Values::DepositEntry.new(
           entry[:amount],
           entry[:date],
+          entry[:time],
           entry[:rut],
-          bank_name
+          bank_name,
+          entry[:client]
         )
       end
       BankApi::SignDeposits.sign(deposit_entries)

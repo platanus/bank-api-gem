@@ -2,10 +2,6 @@
 
 module BankApi::Clients::BancoSecurity
   module Deposits
-    DATE_COLUMN = 0
-    RUT_COLUMN = 2
-    AMOUNT_COLUMN = 5
-
     def select_deposits_range
       browser.search('.BusquedaPorDefectoRecibida a:contains("búsqueda avanzada")').click
       browser.search('#RadioEntreFechasRecibido').click
@@ -29,14 +25,52 @@ module BankApi::Clients::BancoSecurity
       format_transactions(transactions)
     end
 
+    def deposits_from_account_details
+      data = browser.download(
+        deposits_account_details_url
+      ).content.encode("UTF-8", "iso-8859-3").split("\r\n")
+      transactions = data[3, data.count - 11].reverse
+      format_account_transactions(transactions)
+    end
+
     def format_transactions(transactions)
       transactions.map do |t|
+        datetime = DateTime.parse(t[0])
         {
-          rut: format_rut(t[RUT_COLUMN]),
-          date: timezone.local_to_utc(DateTime.parse(t[DATE_COLUMN])).to_date,
-          amount: t[AMOUNT_COLUMN].to_i
+          client: t[1],
+          rut: format_rut(t[2]),
+          date: timezone.local_to_utc(datetime).to_date,
+          time: datetime,
+          amount: t[5].to_i
         }
       end
+    end
+
+    def format_account_transactions(transactions)
+      transactions.inject([]) do |memo, t|
+        parts = t.split(";")
+        amount = parts[4].delete(",").to_i
+        next memo if amount.zero?
+        client = extract_client_name(parts[1])
+        next memo unless client
+
+        memo << {
+          client: client,
+          rut: nil,
+          date: Date.strptime(parts[0], "%d/%m"),
+          time: nil,
+          amount: amount
+        }
+
+        memo
+      end
+    end
+
+    def extract_client_name(text)
+      parts = text.to_s.split(" De ")
+      parts = text.to_s.split(" DE ") if parts.count == 1
+      return text if parts.count > 2
+      parts.last.to_s.strip
     end
 
     def deposit_range
@@ -53,6 +87,10 @@ module BankApi::Clients::BancoSecurity
       "https://www.bancosecurity.cl/ConvivenciaEmpresas/CartolasTEF/Download/" +
         "CrearTxTRecibidas?numeroCuenta=#{account_number}&monto=0&" +
         "fechaInicio=#{start_}&fechaFin=#{end_}&estado=1"
+    end
+
+    def deposits_account_details_url
+      browser.search("a:contains('Descargar TXT')").first.attribute("href")
     end
 
     def format_rut(rut)

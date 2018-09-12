@@ -5,7 +5,7 @@ RSpec.describe BankApi::SignDeposits do
   let(:entries) do
     [
       BankApi::Values::DepositEntry.new(
-        25000, Date.new(2017, 3, 3), '12345678-9', :security
+        25000, Date.new(2017, 3, 3), nil, '12345678-9', :security, "Lean"
       )
     ]
   end
@@ -24,7 +24,7 @@ RSpec.describe BankApi::SignDeposits do
   context 'with entries with same data' do
     before do
       entries << BankApi::Values::DepositEntry.new(
-        25000, Date.new(2017, 3, 3), '12345678-9', :security
+        25000, Date.new(2017, 3, 3), nil, '12345678-9', :security, "Lean"
       )
     end
 
@@ -32,6 +32,17 @@ RSpec.describe BankApi::SignDeposits do
       BankApi::SignDeposits.sign(entries)
       expect(entries[0].signature).to eq(expected_signature)
       expect(entries[1].signature).not_to eq(expected_signature)
+    end
+  end
+
+  context 'when entry has nil rut' do
+    let(:expected_signature) { '25000|2017-03-03|lean|security|1' }
+
+    before { entries.first.rut = nil }
+
+    it 'calculates different signature' do
+      BankApi::SignDeposits.sign(entries)
+      expect(entries[0].signature).to eq(expected_signature)
     end
   end
 end

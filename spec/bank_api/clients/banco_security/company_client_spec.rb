@@ -106,6 +106,8 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     allow(subject).to receive(:goto_company_dashboard)
     allow(subject).to receive(:goto_transfer_form)
     allow(subject).to receive(:submit_transfer_form)
+    allow(subject).to receive(:goto_balance)
+    allow(subject).to receive(:goto_account_details)
   end
 
   def mock_get_deposits
@@ -117,6 +119,9 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
   end
 
   describe "get_recent_deposits" do
+    let(:options) { {} }
+    let(:perform) { subject.get_recent_deposits(options) }
+
     before do
       mock_validate_credentials
       mock_site_navigation
@@ -144,7 +149,43 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
         ]
       )
 
-      subject.get_recent_deposits
+      perform
+    end
+
+    context 'with account_details source' do
+      let(:account_number) { "666" }
+      let(:options) do
+        {
+          source: :account_details,
+          account_number: account_number
+        }
+      end
+
+      context "with valid config" do
+        before do
+          expect(subject).to receive(:deposits_from_account_details).and_return(
+            [
+              {
+                client: "Leandro",
+                rut: nil,
+                date: Date.parse('01/01/2018'),
+                amount: 1000
+              }
+            ]
+          )
+        end
+
+        it "returns valid entries" do
+          deposit = perform.first[:deposit_entry]
+          expect(deposit).to be_a(BankApi::Values::DepositEntry)
+        end
+      end
+
+      context "with missing account number" do
+        let(:account_number) { nil }
+
+        it { expect { perform }.to raise_error("missing :account_number option") }
+      end
     end
 
     context 'validate_credentials implementation' do
@@ -153,7 +194,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       end
 
       it "doesn't raise NotImplementedError" do
-        expect { subject.get_recent_deposits }.not_to raise_error(NotImplementedError)
+        expect { perform }.not_to raise_error(NotImplementedError)
       end
     end
 
@@ -163,7 +204,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       end
 
       it "doesn't raise NotImplementedError" do
-        expect { subject.get_recent_deposits }.not_to raise_error(NotImplementedError)
+        expect { perform }.not_to raise_error(NotImplementedError)
       end
     end
 
@@ -181,7 +222,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       end
 
       it 'returns empty array' do
-        expect(subject.get_recent_deposits).to eq([])
+        expect(perform).to eq([])
       end
     end
 
@@ -203,7 +244,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
         end
 
         it "raises error" do
-          expect { subject.get_recent_deposits }.to raise_error(
+          expect { perform }.to raise_error(
             BankApi::Deposit::QuantityError, "Expected 50 deposits," +
               " got 30."
           )
@@ -221,7 +262,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
       context "without error" do
         it "calls browser.close" do
-          subject.get_recent_deposits
+          perform
         end
       end
 
@@ -231,7 +272,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
         end
 
         it "calls browser.close" do
-          expect { subject.get_recent_deposits }.to raise_error(StandardError)
+          expect { perform }.to raise_error(StandardError)
         end
       end
     end
