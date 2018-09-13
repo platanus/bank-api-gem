@@ -37,6 +37,7 @@ module BankApi::SignDeposits
   end
 
   def entry_key(entry)
-    "#{entry.amount}|#{entry.date}|#{entry.rut}|#{entry.bank}"
+    rut_or_client = entry.rut || entry.client.to_s.downcase.delete(' ')
+    "#{entry.amount}|#{entry.date}|#{rut_or_client}|#{entry.bank}"
   end
 end

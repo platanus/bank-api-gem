@@ -49,6 +49,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
     dummy.instance_variable_set(:@dynamic_card, dynamic_card)
     allow(dummy).to receive(:browser).and_return(browser)
     allow(dummy).to receive(:deposits_txt_url).and_return(txt_url)
+    allow(dummy).to receive(:deposits_account_details_url).and_return(txt_url)
     allow(dummy).to receive(:any_deposits?).and_return(true)
 
     allow(browser).to receive(:search).and_return(div)
@@ -79,24 +80,70 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
       expect(dummy.deposits_from_txt).to eq(
         [
           {
+            client: "PEPE",
             rut: '12.345.678-9',
             date: Date.parse('01/01/2018'),
+            time: DateTime.parse('01/01/2018 1:15'),
             amount: 1000
           },
           {
+            client: "GARY",
             rut: '12.345.678-9',
             date: Date.parse('01/01/2018'),
+            time: DateTime.parse('01/01/2018 5:15'),
             amount: 2000
           },
           {
+            client: "PEPE",
             rut: '12.345.678-9',
             date: Date.parse('01/01/2018'),
+            time: DateTime.parse('01/01/2018 7:15'),
             amount: 3000
           },
           {
+            client: "PEPE",
             rut: '12.345.678-9',
             date: Date.parse('02/01/2018'),
+            time: DateTime.parse('01/01/2018 21:00'),
             amount: 4000
+          }
+        ]
+      )
+    end
+  end
+
+  context "with deposits from account details" do
+    let(:txt_file) do
+      content = <<~DOC
+        Nombre;Direcci\xF3n;Comuna;Ciudad;Cuenta;Moneda;Cartola;Desde;Hasta;Fecha cartola anterior;Saldo final cartola anterior;Ejecutivo;Oficina;Tel\xE9fono;L\xEDnea de Cr\xE9dito Monto utilizado;L\xEDnea de Cr\xE9dito Monto Disponible;Vencimiento\r\LEANS ADMINISTRADORA GENERAL DE FONDOS S A;LOS CONQUISTADORES 111, PROVIDENCIA, SANTIAGO;PROVIDENCIA;SANTIAGO;666698607;CLP;Provisoria;666666;7777777;Fecha cartola anterior en duro;;LEAN SEGOVIA;EL GOLF;2342342234;0;0.0;4334334\r\nFecha;Descripci\xF3n;N de documento;Cargos;Abonos;Saldo\r\n12/09;TRANSFERENCIA DESDE Banco Santander De ALICIA FORTUNATO ; 00056290667;0.00;180,000.00;47,300,662.00\r\n12/09;TRANSFERENCIA DESDE Banco Santander De SANDRA VILLANUEVA; 00056290549;0.00;2,230,000.00;47,120,662.00\r\n12/09;TRANSFERENCIA DESDE BANCO SECURITY DE LEANDRO SEGOVIA ; 00056290121;0.00;300,000.00;44,890,662.00\r\n12/09;TRANSFERENCIA A Banco Santander PARA Mario Ruiz Tagle; 00056288530;199,073.00;0.00;44,590,662.00\r\n12/09;TRANSFERENCIA A BCI PARA Juan Bustos Cavada ; 00056288222;4,150,374.00;0.00;44,789,735.00\r\n12/09;TRANSFERENCIA A Banco Chile-Edwards-Citi PARA Javier Andr s Soto  ; 00056288091;92,000.00;0.00;48,940,109.00\r\n12/09;TRANSFERENCIA A Banco Santander PARA Sebastian Ortega; 00056287857;2,231,196.00;0.00;49,032,109.00\r\n03/09;TRANSFERENCIA DESDE BBVA De SILVA DAURO ; 00054935695;0.00;50,000.00;93,342,708.00\r\n03/09;SALDO INICIAL;;0.00;0.00;93,292,708.00\r\nResumen del per\xEDodo\r\nSaldo inicial;Total cargos;Total abonos;Saldo final\r\n93,292,708.00;696,761,603.00;650,769,557.00;93,292,708.00\r\nCheques pagados\r\n;;;;;\r\nCheques devueltos\r\n;;;;;\r\n
+      DOC
+
+      double(content: content)
+    end
+
+    it "returns deposits" do
+      expect(dummy.deposits_from_account_details).to eq(
+        [
+          {
+            client: "SILVA DAURO",
+            rut: nil,
+            date: Date.parse('03/09/2018'),
+            time: nil,
+            amount: 50000
+          },
+          {
+            client: "LEANDRO SEGOVIA",
+            rut: nil,
+            date: Date.parse('12/09/2018'),
+            time: nil,
+            amount: 300000
+          },
+          {
+            client: "SANDRA VILLANUEVA",
+            rut: nil,
+            date: Date.parse('12/09/2018'),
+            time: nil,
+            amount: 2230000
           }
         ]
       )

@@ -67,6 +67,10 @@ module BankApi::Clients::Navigation
         goto_frame query: 'iframe[name="central"]', should_reset: false
       end
 
+      def goto_account_details(account_number)
+        wait("a.clickable:contains(\"#{account_number}\")").click
+      end
+
       def goto_transfer_form
         goto_frame query: '#topFrame'
         selenium_browser.execute_script(

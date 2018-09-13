@@ -38,7 +38,7 @@ module BankApi::Clients
       ].any?(&:nil?)
     end
 
-    def get_deposits
+    def get_deposits(_options = {})
       login
       goto_deposits
       select_deposits_range

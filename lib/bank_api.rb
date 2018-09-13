@@ -27,20 +27,23 @@ module BankApi
 
   module BancoSecurity
     def self.get_account_balance(account_number)
-      Clients::BancoSecurity::CompanyClient.new(BankApi.configuration).get_balance(account_number)
+      company_instance.get_balance(account_number)
     end
 
-    def self.get_recent_company_deposits
-      Clients::BancoSecurity::CompanyClient.new(BankApi.configuration).get_recent_deposits
+    def self.get_recent_company_deposits(options = {})
+      company_instance.get_recent_deposits(options)
     end
 
     def self.company_transfer(transfer_data)
-      Clients::BancoSecurity::CompanyClient.new(BankApi.configuration).transfer(transfer_data)
+      company_instance.transfer(transfer_data)
     end
 
     def self.company_batch_transfers(transfers_data)
+      company_instance.batch_transfers(transfers_data)
+    end
+
+    def self.company_instance
       Clients::BancoSecurity::CompanyClient.new(BankApi.configuration)
-                                           .batch_transfers(transfers_data)
     end
   end
 end
