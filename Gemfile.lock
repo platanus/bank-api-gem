@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    bank_api (0.4.4)
+    bank_api (0.5.0)
       pincers
       rest-client
       timezone (~> 1.0)
@@ -60,7 +60,7 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.7.0)
     rspec-support (3.7.0)
-    rubyzip (1.2.1)
+    rubyzip (1.2.2)
     selenium-webdriver (2.53.4)
       childprocess (~> 0.5)
       rubyzip (~> 1.0)
