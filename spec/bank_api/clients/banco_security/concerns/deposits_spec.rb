@@ -83,28 +83,28 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
             client: "PEPE",
             rut: '12.345.678-9',
             date: Date.parse('01/01/2018'),
-            time: DateTime.parse('01/01/2018 1:15'),
+            time: Time.parse('01/01/2018 4:15 UTC'),
             amount: 1000
           },
           {
             client: "GARY",
             rut: '12.345.678-9',
             date: Date.parse('01/01/2018'),
-            time: DateTime.parse('01/01/2018 5:15'),
+            time: Time.parse('01/01/2018 8:15 UTC'),
             amount: 2000
           },
           {
             client: "PEPE",
             rut: '12.345.678-9',
             date: Date.parse('01/01/2018'),
-            time: DateTime.parse('01/01/2018 7:15'),
+            time: Time.parse('01/01/2018 10:15 UTC'),
             amount: 3000
           },
           {
             client: "PEPE",
             rut: '12.345.678-9',
             date: Date.parse('02/01/2018'),
-            time: DateTime.parse('01/01/2018 21:00'),
+            time: Time.parse('02/01/2018 00:00 UTC'),
             amount: 4000
           }
         ]
