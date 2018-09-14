@@ -65,6 +65,7 @@ GEM
       childprocess (~> 0.5)
       rubyzip (~> 1.0)
       websocket (~> 1.0)
+    timecop (0.9.1)
     timezone (1.2.12)
     unf (0.1.4)
       unf_ext
@@ -82,6 +83,7 @@ DEPENDENCIES
   pry-byebug
   rake (~> 10.0)
   rspec (~> 3.0)
+  timecop
 
 BUNDLED WITH
    1.16.1

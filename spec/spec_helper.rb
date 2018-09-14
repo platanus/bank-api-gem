@@ -1,6 +1,7 @@
 require "./spec/pincers_helpers"
 require "bundler/setup"
 require "bank_api"
+require "timecop"
 
 RSpec.configure do |config|
   config.include PincersHelpers, client: true

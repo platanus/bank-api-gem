@@ -1,6 +1,7 @@
 require 'spec_helper'
 
 RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
+  let(:now) { Time.parse('01/01/2018 10:00 -0300') }
   let(:browser) { double(config: { wait_timeout: 5.0, wait_interval: 0.2 }) }
   let(:div) { double(text: 'text') }
   let(:dynamic_card) { double }
@@ -65,7 +66,11 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
     mock_set_page_size
     mock_wait_for_deposits_fetch
     mock_wait_for_next_page
+
+    Timecop.freeze(now)
   end
+
+  after { Timecop.return }
 
   it "implements select_deposits_range" do
     expect { dummy.select_deposits_range }.not_to raise_error
@@ -83,28 +88,28 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
             client: "PEPE",
             rut: '12.345.678-9',
             date: Date.parse('01/01/2018'),
-            time: DateTime.parse('01/01/2018 1:15'),
+            time: Time.parse('01/01/2018 4:15 UTC'),
             amount: 1000
           },
           {
             client: "GARY",
             rut: '12.345.678-9',
             date: Date.parse('01/01/2018'),
-            time: DateTime.parse('01/01/2018 5:15'),
+            time: Time.parse('01/01/2018 8:15 UTC'),
             amount: 2000
           },
           {
             client: "PEPE",
             rut: '12.345.678-9',
             date: Date.parse('01/01/2018'),
-            time: DateTime.parse('01/01/2018 7:15'),
+            time: Time.parse('01/01/2018 10:15 UTC'),
             amount: 3000
           },
           {
             client: "PEPE",
             rut: '12.345.678-9',
             date: Date.parse('02/01/2018'),
-            time: DateTime.parse('01/01/2018 21:00'),
+            time: Time.parse('02/01/2018 00:00 UTC'),
             amount: 4000
           }
         ]

@@ -35,11 +35,11 @@ module BankApi::Clients::BancoSecurity
 
     def format_transactions(transactions)
       transactions.map do |t|
-        datetime = DateTime.parse(t[0])
+        datetime = timezone.local_to_utc(DateTime.parse(t[0]))
         {
           client: t[1],
           rut: format_rut(t[2]),
-          date: timezone.local_to_utc(datetime).to_date,
+          date: datetime.to_date,
           time: datetime,
           amount: t[5].to_i
         }
@@ -52,7 +52,6 @@ module BankApi::Clients::BancoSecurity
         amount = parts[4].delete(",").to_i
         next memo if amount.zero?
         client = extract_client_name(parts[1])
-        next memo unless client
 
         memo << {
           client: client,
