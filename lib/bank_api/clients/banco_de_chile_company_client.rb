@@ -8,6 +8,7 @@ module BankApi::Clients
     COMPANY_LOGIN_URL = 'https://www.empresas.bancochile.cl/cgi-bin/navega?pagina=enlinea/login_fus'
     COMPANY_DEPOSITS_URL = 'https://www.empresas.bancochile.cl/GlosaInternetEmpresaRecibida/ConsultaRecibidaAction.do'
     COMPANY_DEPOSITS_TXT_URL = 'https://www.empresas.bancochile.cl/GlosaInternetEmpresaRecibida/RespuestaConsultaRecibidaAction.do'
+    COMPANY_CC_BALANCE_URL = 'https://www.empresas.bancochile.cl/CCOLDerivadorWEB/selectorCuentas.do?accion=initSelectorCuentas&opcion=saldos&moduloProducto=CC'
 
     DATE_COLUMN = 0
     RUT_COLUMN = 4
@@ -36,6 +37,33 @@ module BankApi::Clients
         @bdc_user_rut,
         @bdc_password
       ].any?(&:nil?)
+    end
+
+    def get_balance
+      login
+      goto_balance
+      select_account
+      click_consultar_balance
+      read_balance
+    end
+
+    def goto_balance
+      browser.goto COMPANY_CC_BALANCE_URL
+    end
+
+    def select_account
+      first_account = browser.search("select[name=cuenta] option").find do |account|
+        account.value.include? @bdc_account
+      end.value
+      browser.search("select[name=cuenta]").set by_value: first_account
+    end
+
+    def click_consultar_balance
+      browser.search('#btnSeleccionarCuenta').click
+    end
+
+    def read_balance
+      browser.search('table.detalleSaldosMov tr:nth-child(2) > td.aRight.bold').text
     end
 
     def get_deposits(_options = {})
