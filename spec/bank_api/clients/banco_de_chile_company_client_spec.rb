@@ -75,7 +75,7 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
     allow(subject).to receive(:login)
     allow(subject).to receive(:goto_balance)
     allow(subject).to receive(:select_account)
-    allow(subject).to receive(:click_consultar_balance)
+    allow(subject).to receive(:click_fetch_balance_button)
   end
 
   describe "get_recent_deposits" do

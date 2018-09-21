@@ -43,7 +43,7 @@ module BankApi::Clients
       login
       goto_balance
       select_account
-      click_consultar_balance
+      click_fetch_balance_button
       read_balance
     end
 
@@ -58,7 +58,7 @@ module BankApi::Clients
       browser.search("select[name=cuenta]").set by_value: first_account
     end
 
-    def click_consultar_balance
+    def click_fetch_balance_button
       browser.search('#btnSeleccionarCuenta').click
     end
 
