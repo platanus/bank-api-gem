@@ -44,7 +44,7 @@ module BankApi::Clients
       goto_balance
       select_account
       click_fetch_balance_button
-      read_balance
+      money_to_i read_balance
     end
 
     def goto_balance
@@ -60,6 +60,10 @@ module BankApi::Clients
 
     def click_fetch_balance_button
       browser.search('#btnSeleccionarCuenta').click
+    end
+
+    def money_to_i(text)
+      text.delete(".").delete("$").delete(" ").to_i
     end
 
     def read_balance

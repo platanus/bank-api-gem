@@ -134,7 +134,7 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
 
     it 'returns the saldo disponible' do
       expect(subject).to receive(:validate_credentials)
-      expect(subject.send(:get_balance)).to eq('$ 445.070')
+      expect(subject.send(:get_balance)).to eq(445070)
 
       subject.get_account_balance
     end
