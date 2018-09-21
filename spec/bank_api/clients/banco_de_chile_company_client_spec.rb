@@ -71,6 +71,13 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
     allow(subject).to receive(:submit_deposits_form)
   end
 
+  def mock_get_balance_navigation
+    allow(subject).to receive(:login)
+    allow(subject).to receive(:goto_balance)
+    allow(subject).to receive(:select_account)
+    allow(subject).to receive(:click_fetch_balance_button)
+  end
+
   describe "get_recent_deposits" do
     before do
       mock_validate_credentials
@@ -100,6 +107,36 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
       )
 
       subject.get_recent_deposits
+    end
+
+    context "with navigation error" do
+      before do
+        allow(subject).to receive(:goto_deposits).and_raise StandardError, "timeout"
+      end
+
+      it "closes the browser" do
+        expect(browser).to receive(:close)
+
+        expect { subject.get_recent_deposits }.to raise_error
+      end
+    end
+  end
+
+  describe 'get_balance' do
+    let(:search) { double }
+
+    before do
+      mock_validate_credentials
+      mock_get_balance_navigation
+      allow(browser).to receive(:search).with('table.detalleSaldosMov tr:nth-child(2) > td.aRight.bold').and_return(search)
+      allow(search).to receive(:text).and_return('$ 445.070')
+    end
+
+    it 'returns the saldo disponible' do
+      expect(subject).to receive(:validate_credentials)
+      expect(subject.send(:get_balance)).to eq(445070)
+
+      subject.get_account_balance
     end
 
     context "with navigation error" do

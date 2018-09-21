@@ -25,6 +25,10 @@ module BankApi
     Clients::BancoDeChileCompanyClient.new(configuration).get_recent_deposits
   end
 
+  def self.get_bdc_company_balance
+    Clients::BancoDeChileCompanyClient.new(configuration).get_account_balance
+  end
+
   module BancoSecurity
     def self.get_account_balance(account_number)
       company_instance.get_balance(account_number)
