@@ -21,8 +21,8 @@ module BankApi
     yield(configuration)
   end
 
-  def self.get_bdc_recent_company_deposits
-    Clients::BancoDeChileCompanyClient.new(configuration).get_recent_deposits
+  def self.get_bdc_recent_company_deposits(options = {})
+    Clients::BancoDeChileCompanyClient.new(configuration).get_recent_deposits(options)
   end
 
   def self.get_bdc_account_balance(account_number)
