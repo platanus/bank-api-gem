@@ -72,6 +72,9 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
   end
 
   describe "get_recent_deposits" do
+    let(:options) { {} }
+    let(:perform) { subject.get_recent_deposits(options) }
+
     before do
       mock_validate_credentials
       mock_site_navigation
@@ -82,24 +85,30 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
       expect(subject.send(:get_deposits)).to eq(
         [
           {
+            client: "PEPE",
             rut: '12.345.678-9',
             date: Date.parse('01/01/2018'),
+            time: nil,
             amount: 1000
           },
           {
+            client: "GARY",
             rut: '12.345.678-9',
             date: Date.parse('01/01/2018'),
+            time: nil,
             amount: 2000
           },
           {
+            client: "PEPE",
             rut: '12.345.678-9',
+            time: nil,
             date: Date.parse('01/01/2018'),
             amount: 4000
           }
         ]
       )
 
-      subject.get_recent_deposits
+      perform
     end
 
     context "with navigation error" do
@@ -110,68 +119,97 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
       it "closes the browser" do
         expect(browser).to receive(:close)
 
-        expect { subject.get_recent_deposits }.to raise_error
+        expect { perform }.to raise_error
       end
     end
-  end
 
-  context 'validate_credentials implementation' do
-    before do
-      mock_get_deposits
+    context 'validate_credentials implementation' do
+      before do
+        mock_get_deposits
+      end
+
+      it 'doesn\'t raise NotImplementedError' do
+        expect { perform }.not_to raise_error(NotImplementedError)
+      end
     end
 
-    it 'doesn\'t raise NotImplementedError' do
-      expect { subject.get_recent_deposits }.not_to raise_error(NotImplementedError)
-    end
-  end
+    context 'get_deposits implementation' do
+      before do
+        mock_validate_credentials
+      end
 
-  context 'get_deposits implementation' do
-    before do
-      mock_validate_credentials
-    end
-
-    it 'doesn\'t raise NotImplementedError' do
-      expect { subject.get_recent_deposits }.not_to raise_error(NotImplementedError)
-    end
-  end
-
-  context 'with no deposits' do
-    before do
-      mock_validate_credentials
-      mock_site_navigation
-      allow(browser).to receive(:search).with('table#sin_datos').and_return(['div'])
+      it 'doesn\'t raise NotImplementedError' do
+        expect { perform }.not_to raise_error(NotImplementedError)
+      end
     end
 
-    it 'returns empty array' do
-      expect(subject.get_recent_deposits).to eq([])
-    end
-  end
+    context 'with no deposits' do
+      before do
+        mock_validate_credentials
+        mock_site_navigation
+        allow(browser).to receive(:search).with('table#sin_datos').and_return(['div'])
+      end
 
-  context "with banchile not working" do
-    before do
-      mock_validate_credentials
-      mock_site_navigation
-      allow(error_div).to receive(:none?).and_return(false)
-    end
-
-    it "raises 'Banchile is down'" do
-      expect { subject.get_recent_deposits }.to raise_error("Banchile is down")
-    end
-  end
-
-  context "with failed deposit fetch" do
-    let(:txt_file_response) do
-      double(body: "no podemos atenderle")
+      it 'returns empty array' do
+        expect(perform).to eq([])
+      end
     end
 
-    before do
-      mock_validate_credentials
-      mock_site_navigation
-      allow(error_div).to receive(:none?).and_return(false)
+    context "with banchile not working" do
+      before do
+        mock_validate_credentials
+        mock_site_navigation
+        allow(error_div).to receive(:none?).and_return(false)
+      end
+
+      it "raises 'Banchile is down'" do
+        expect { perform }.to raise_error("Banchile is down")
+      end
     end
 
-    it "raises 'Banchile is down'" do
-      expect { subject.get_recent_deposits }.to raise_error("Banchile is down")
+    context "with failed deposit fetch" do
+      let(:txt_file_response) do
+        double(body: "no podemos atenderle")
+      end
+
+      before do
+        mock_validate_credentials
+        mock_site_navigation
+        allow(error_div).to receive(:none?).and_return(false)
+      end
+
+      it "raises 'Banchile is down'" do
+        expect { perform }.to raise_error("Banchile is down")
+      end
+    end
+
+    context 'with account_details source' do
+      let(:options) do
+        {
+          source: :account_details
+        }
+      end
+
+      context "with valid config" do
+        before do
+          expect(subject).to receive(:download_account_deposits_txt).and_return(
+            [
+              {
+                client: "Leandro",
+                rut: nil,
+                date: Date.parse('01/01/2018'),
+                amount: 1000,
+                time: nil
+              }
+            ]
+          )
+        end
+
+        it "returns valid entries" do
+          deposit = perform.first[:deposit_entry]
+          expect(deposit).to be_a(BankApi::Values::DepositEntry)
+        end
+      end
     end
   end
 end

@@ -8,11 +8,7 @@ module BankApi::Clients
     COMPANY_LOGIN_URL = 'https://www.empresas.bancochile.cl/cgi-bin/navega?pagina=enlinea/login_fus'
     COMPANY_DEPOSITS_URL = 'https://www.empresas.bancochile.cl/GlosaInternetEmpresaRecibida/ConsultaRecibidaAction.do'
     COMPANY_DEPOSITS_TXT_URL = 'https://www.empresas.bancochile.cl/GlosaInternetEmpresaRecibida/RespuestaConsultaRecibidaAction.do'
-
-    DATE_COLUMN = 0
-    RUT_COLUMN = 4
-    AMOUNT_COLUMN = 6
-    STATE_COLUMN = 7
+    COMPANY_ACCOUNT_DEPOSITS_URL = 'https://www.empresas.bancochile.cl/CCOLSaldoMovimientosWEB/selectorCuentas.do?accion=initSelectorCuentas&cuenta=001642711701&moneda=CTD#page=page-1'
 
     NUMBER_OF_COLUMNS = 9
 
@@ -38,14 +34,27 @@ module BankApi::Clients
       ].any?(&:nil?)
     end
 
-    def get_deposits(_options = {})
+    def get_deposits(options = {})
       login
-      goto_deposits
-      select_deposits_range
-      deposits = deposits_from_txt
-      deposits
+
+      if options[:source] == :account_details
+        return get_deposits_from_balance_section
+      end
+
+      get_deposits_from_transfers_section
     ensure
       browser.close
+    end
+
+    def get_deposits_from_balance_section
+      goto_account_deposits
+      download_account_deposits_txt
+    end
+
+    def get_deposits_from_transfers_section
+      goto_deposits
+      select_deposits_range
+      deposits_from_txt
     end
 
     def login
@@ -70,8 +79,20 @@ module BankApi::Clients
       browser.search('.btn_amarillodegrade').click
     end
 
+    def goto_account_deposits
+      browser.goto COMPANY_ACCOUNT_DEPOSITS_URL
+    end
+
     def goto_deposits
       browser.goto COMPANY_DEPOSITS_URL
+    end
+
+    def download_account_deposits_txt
+      url = browser.search("#expoDato_child > a:nth-child(3)").attribute(:href)
+      result = browser.download(url)
+                      .content.encode("UTF-8", "iso-8859-3")
+                      .delete("\r").split("\n").drop(2)
+      format_account_transactions(result)
     end
 
     def select_deposits_range
@@ -116,18 +137,42 @@ module BankApi::Clients
 
     def split_transactions(transactions_str)
       transactions_str.delete("\r").split("\n").drop(1).map { |r| r.split(";") }.select do |t|
-        t[STATE_COLUMN] == "Aprobada"
+        t[7] == "Aprobada"
       end
     end
 
     def format_transactions(transactions)
       transactions.map do |t|
         {
-          rut: t[RUT_COLUMN],
-          date: Date.parse(t[DATE_COLUMN]),
-          amount: t[AMOUNT_COLUMN].to_i
+          client: format_client_name(t[3]),
+          rut: t[4],
+          date: Date.parse(t[0]),
+          time: nil,
+          amount: t[6].to_i
         }
       end
+    end
+
+    def format_account_transactions(transactions)
+      transactions.inject([]) do |memo, t|
+        parts = t.split(";")
+        amount = parts[3].to_i
+        next memo if amount.zero?
+
+        memo << {
+          client: format_client_name(parts[1]),
+          rut: nil,
+          date: Date.parse(parts[0]),
+          time: nil,
+          amount: amount
+        }
+
+        memo
+      end
+    end
+
+    def format_client_name(name)
+      name.to_s.split("DE:").last.to_s.strip
     end
 
     def deposits_params(from_date, to_date)
