@@ -57,9 +57,9 @@ module BankApi::Clients
       browser.goto COMPANY_CC_BALANCE_URL
     end
 
-    def select_account
+    def select_account(account_number)
       first_account = browser.search("select[name=cuenta] option").find do |account|
-        account.value.include? @bdc_account
+        account.value.include? account_number
       end.value
       browser.search("select[name=cuenta]").set by_value: first_account
     end
