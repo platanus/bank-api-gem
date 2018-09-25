@@ -16,9 +16,9 @@ module BankApi::Clients
       parse_entries(get_deposits(options))
     end
 
-    def get_account_balance
+    def get_account_balance(account_number)
       validate_credentials
-      get_balance
+      get_balance(account_number)
     end
 
     def transfer(transfer_data)

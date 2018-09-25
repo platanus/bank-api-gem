@@ -39,12 +39,18 @@ module BankApi::Clients
       ].any?(&:nil?)
     end
 
-    def get_balance
+    def get_balance(account_number)
       login
       goto_balance
-      select_account
+      select_account(account_number)
       click_fetch_balance_button
-      money_to_i read_balance
+      {
+        account_number: account_number,
+        available_balance: money_to_i(read_balance(:available)),
+        countable_balance: money_to_i(read_balance(:countable))
+      }
+    ensure
+      browser.close
     end
 
     def goto_balance
@@ -66,8 +72,14 @@ module BankApi::Clients
       text.delete(".").delete("$").delete(" ").to_i
     end
 
-    def read_balance
-      browser.search('table.detalleSaldosMov tr:nth-child(2) > td.aRight.bold').text
+    def read_balance(balance_kind)
+      return '' unless [:available, :countable].include? balance_kind
+
+      if balance_kind == :available
+        return browser.search('table.detalleSaldosMov tr:nth-child(2) > td.aRight.bold').text
+      end
+
+      browser.search('table.detalleSaldosMov tr:first-child > td.aRight.bold').text
     end
 
     def get_deposits(_options = {})
