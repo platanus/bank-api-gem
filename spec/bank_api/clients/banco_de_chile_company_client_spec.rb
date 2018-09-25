@@ -74,7 +74,7 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
   def mock_get_balance_navigation
     allow(subject).to receive(:login)
     allow(subject).to receive(:goto_balance)
-    allow(subject).to receive(:select_account)
+    allow(subject).to receive(:select_account).with(account_number)
     allow(subject).to receive(:click_fetch_balance_button)
   end
 
@@ -123,20 +123,26 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
   end
 
   describe 'get_balance' do
-    let(:search) { double }
+    let(:search_countable) { double }
+    let(:search_available) { double }
+    let(:account_number) { 123456789 }
 
     before do
       mock_validate_credentials
       mock_get_balance_navigation
-      allow(browser).to receive(:search).with('table.detalleSaldosMov tr:nth-child(2) > td.aRight.bold').and_return(search)
-      allow(search).to receive(:text).and_return('$ 445.070')
+      allow(browser).to receive(:search).with('table.detalleSaldosMov tr:nth-child(2) > td.aRight.bold').and_return(search_available)
+      allow(browser).to receive(:search).with('table.detalleSaldosMov tr:first-child > td.aRight.bold').and_return(search_countable)
+      allow(search_available).to receive(:text).and_return('$ 445.070')
+      allow(search_countable).to receive(:text).and_return('$ 400.070')
     end
 
-    it 'returns the saldo disponible' do
+    it 'returns the balance hash' do
       expect(subject).to receive(:validate_credentials)
-      expect(subject.send(:get_balance)).to eq(445070)
-
-      subject.get_account_balance
+      res = subject.get_account_balance(account_number)
+      expect(res.keys).to include(:account_number, :available_balance, :countable_balance)
+      expect(res[:available_balance]).to eq(445070)
+      expect(res[:countable_balance]).to eq(400070)
+      expect(res[:account_number]).to eq(account_number)
     end
 
     context "with navigation error" do
