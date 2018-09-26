@@ -90,7 +90,7 @@ module BankApi::Clients
 
     def get_deposits_from_balance_section
       goto_account_deposits
-      download_account_deposits_txt
+      account_deposits_from_txt
     end
 
     def get_deposits_from_transfers_section
@@ -129,7 +129,7 @@ module BankApi::Clients
       browser.goto COMPANY_DEPOSITS_URL
     end
 
-    def download_account_deposits_txt
+    def account_deposits_from_txt
       url = browser.search("#expoDato_child > a:nth-child(3)").attribute(:href)
       result = browser.download(url)
                       .content.encode("UTF-8", "iso-8859-3")

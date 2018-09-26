@@ -179,7 +179,7 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
 
       context "with valid config" do
         before do
-          expect(subject).to receive(:download_account_deposits_txt).and_return(
+          expect(subject).to receive(:account_deposits_from_txt).and_return(
             [
               {
                 client: "Leandro",
