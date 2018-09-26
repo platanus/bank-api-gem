@@ -79,6 +79,9 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
   end
 
   describe "get_recent_deposits" do
+    let(:options) { {} }
+    let(:perform) { subject.get_recent_deposits(options) }
+
     before do
       mock_validate_credentials
       mock_site_navigation
@@ -89,24 +92,30 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
       expect(subject.send(:get_deposits)).to eq(
         [
           {
+            client: "PEPE",
             rut: '12.345.678-9',
             date: Date.parse('01/01/2018'),
+            time: nil,
             amount: 1000
           },
           {
+            client: "GARY",
             rut: '12.345.678-9',
             date: Date.parse('01/01/2018'),
+            time: nil,
             amount: 2000
           },
           {
+            client: "PEPE",
             rut: '12.345.678-9',
+            time: nil,
             date: Date.parse('01/01/2018'),
             amount: 4000
           }
         ]
       )
 
-      subject.get_recent_deposits
+      perform
     end
 
     context "with navigation error" do
@@ -117,7 +126,76 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
       it "closes the browser" do
         expect(browser).to receive(:close)
 
-        expect { subject.get_recent_deposits }.to raise_error
+        expect { perform }.to raise_error
+      end
+    end
+
+    context 'with no deposits' do
+      before do
+        mock_validate_credentials
+        mock_site_navigation
+        allow(browser).to receive(:search).with('table#sin_datos').and_return(['div'])
+      end
+
+      it 'returns empty array' do
+        expect(perform).to eq([])
+      end
+    end
+
+    context "with banchile not working" do
+      before do
+        mock_validate_credentials
+        mock_site_navigation
+        allow(error_div).to receive(:none?).and_return(false)
+      end
+
+      it "raises 'Banchile is down'" do
+        expect { perform }.to raise_error("Banchile is down")
+      end
+    end
+
+    context "with failed deposit fetch" do
+      let(:txt_file_response) do
+        double(body: "no podemos atenderle")
+      end
+
+      before do
+        mock_validate_credentials
+        mock_site_navigation
+        allow(error_div).to receive(:none?).and_return(false)
+      end
+
+      it "raises 'Banchile is down'" do
+        expect { perform }.to raise_error("Banchile is down")
+      end
+    end
+
+    context 'with account_details source' do
+      let(:options) do
+        {
+          source: :account_details
+        }
+      end
+
+      context "with valid config" do
+        before do
+          expect(subject).to receive(:account_deposits_from_txt).and_return(
+            [
+              {
+                client: "Leandro",
+                rut: nil,
+                date: Date.parse('01/01/2018'),
+                amount: 1000,
+                time: nil
+              }
+            ]
+          )
+        end
+
+        it "returns valid entries" do
+          deposit = perform.first[:deposit_entry]
+          expect(deposit).to be_a(BankApi::Values::DepositEntry)
+        end
       end
     end
   end
@@ -130,8 +208,12 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
     before do
       mock_validate_credentials
       mock_get_balance_navigation
-      allow(browser).to receive(:search).with('table.detalleSaldosMov tr:nth-child(2) > td.aRight.bold').and_return(search_available)
-      allow(browser).to receive(:search).with('table.detalleSaldosMov tr:first-child > td.aRight.bold').and_return(search_countable)
+      allow(browser).to receive(:search)
+        .with('table.detalleSaldosMov tr:nth-child(2) > td.aRight.bold')
+        .and_return(search_available)
+      allow(browser).to receive(:search)
+        .with('table.detalleSaldosMov tr:first-child > td.aRight.bold')
+        .and_return(search_countable)
       allow(search_available).to receive(:text).and_return('$ 445.070')
       allow(search_countable).to receive(:text).and_return('$ 400.070')
     end
@@ -175,46 +257,6 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
 
     it 'doesn\'t raise NotImplementedError' do
       expect { subject.get_recent_deposits }.not_to raise_error(NotImplementedError)
-    end
-  end
-
-  context 'with no deposits' do
-    before do
-      mock_validate_credentials
-      mock_site_navigation
-      allow(browser).to receive(:search).with('table#sin_datos').and_return(['div'])
-    end
-
-    it 'returns empty array' do
-      expect(subject.get_recent_deposits).to eq([])
-    end
-  end
-
-  context "with banchile not working" do
-    before do
-      mock_validate_credentials
-      mock_site_navigation
-      allow(error_div).to receive(:none?).and_return(false)
-    end
-
-    it "raises 'Banchile is down'" do
-      expect { subject.get_recent_deposits }.to raise_error("Banchile is down")
-    end
-  end
-
-  context "with failed deposit fetch" do
-    let(:txt_file_response) do
-      double(body: "no podemos atenderle")
-    end
-
-    before do
-      mock_validate_credentials
-      mock_site_navigation
-      allow(error_div).to receive(:none?).and_return(false)
-    end
-
-    it "raises 'Banchile is down'" do
-      expect { subject.get_recent_deposits }.to raise_error("Banchile is down")
     end
   end
 end
