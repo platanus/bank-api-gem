@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    bank_api (0.6.2)
+    bank_api (0.7.0)
       pincers
       rest-client
       timezone (~> 1.0)
