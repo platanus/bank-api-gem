@@ -35,6 +35,8 @@ module BankApi::Clients::BancoSecurity
       goto_company_dashboard
       goto_balance
       find_account_balance(account_number)
+    ensure
+      browser.close
     end
 
     def get_deposits(options = {})
