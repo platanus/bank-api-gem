@@ -16,9 +16,9 @@ module BankApi::Clients
       parse_entries(get_deposits(options))
     end
 
-    def get_account_balance(account_number)
+    def get_account_balance(options)
       validate_credentials
-      get_balance(account_number)
+      get_balance(options)
     end
 
     def transfer(transfer_data)
@@ -51,7 +51,7 @@ module BankApi::Clients
       raise NotImplementedError
     end
 
-    def get_balance
+    def get_balance(_options = {})
       raise NotImplementedError
     end
 
