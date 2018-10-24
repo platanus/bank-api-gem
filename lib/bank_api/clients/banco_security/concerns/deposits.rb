@@ -5,8 +5,12 @@ module BankApi::Clients::BancoSecurity
     def select_deposits_range
       browser.search('.BusquedaPorDefectoRecibida a:contains("búsqueda avanzada")').click
       browser.search('#RadioEntreFechasRecibido').click
-      browser.search('#datePickerInicioRecibidas').set deposit_range[:start].strftime('%d/%m/%Y')
-      browser.search('#datePickerFinRecibido').set deposit_range[:end].strftime('%d/%m/%Y')
+      browser.search('#datePickerInicioRecibidas').set(
+        "-#{deposit_range[:start].strftime('%d/%m/%Y')}"
+      )
+      browser.search('#datePickerFinRecibido').set(
+        "-#{deposit_range[:end].strftime('%d/%m/%Y')}"
+      )
       wait('.ContenedorSubmitRecibidas .btn_buscar').click
       wait_for_deposits_fetch
     end
