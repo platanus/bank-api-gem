@@ -67,10 +67,6 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
     mock_wait_for_next_page
   end
 
-  it "implements select_deposits_range" do
-    expect { dummy.select_deposits_range }.not_to raise_error
-  end
-
   it "implements deposits_from_txt" do
     expect { dummy.deposits_from_txt }.not_to raise_error
   end

@@ -15,6 +15,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
   let(:txt_url) { "https://file.txt" }
 
   let(:div) { double(text: 'text') }
+  let(:element) { double }
 
   let(:browser) do
     double(
@@ -56,6 +57,8 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     allow(browser).to receive(:goto)
     allow(browser).to receive(:close)
     allow(browser).to receive(:search).and_return(div)
+    allow(div).to receive(:elements).and_return([element])
+    allow(element).to receive(:send_key)
     allow(browser).to receive(:download).with(txt_url).and_return(txt_file)
 
     allow(div).to receive(:click)
