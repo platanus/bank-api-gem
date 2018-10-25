@@ -7,6 +7,7 @@ module BankApi::Clients
   class BancoDeChileCompanyClient < BaseClient
     COMPANY_LOGIN_URL = 'https://www.empresas.bancochile.cl/cgi-bin/navega?pagina=enlinea/login_fus'
     COMPANY_DEPOSITS_URL = 'https://www.empresas.bancochile.cl/GlosaInternetEmpresaRecibida/ConsultaRecibidaAction.do'
+    COMPANY_PREPARE_DEPOSITS_URL = 'https://www.empresas.bancochile.cl/GlosaInternetEmpresaRecibida/RespuestaConsultaRecibidaAction.do'
     COMPANY_DEPOSITS_TXT_URL = 'https://www.empresas.bancochile.cl/GlosaInternetEmpresaRecibida/RespuestaConsultaRecibidaAction.do'
     COMPANY_ACCOUNT_DEPOSITS_URL = 'https://www.empresas.bancochile.cl/CCOLSaldoMovimientosWEB/selectorCuentas.do?accion=initSelectorCuentas&cuenta=001642711701&moneda=CTD#page=page-1'
     COMPANY_CC_BALANCE_URL = 'https://www.empresas.bancochile.cl/CCOLDerivadorWEB/selectorCuentas.do?accion=initSelectorCuentas&opcion=saldos&moduloProducto=CC'
@@ -95,7 +96,6 @@ module BankApi::Clients
 
     def get_deposits_from_transfers_section
       goto_deposits
-      select_deposits_range
       deposits_from_txt
     end
 
@@ -137,36 +137,17 @@ module BankApi::Clients
       format_account_transactions(result)
     end
 
-    def select_deposits_range
-      browser.search('input[name=initDate]').set(deposit_range[:start])
-      first_account = browser.search("select[name=ctaCorriente] option").find do |account|
-        account.value.include? @bdc_account
-      end.value
-      browser.search("select[name=ctaCorriente]").set by_value: first_account
-      browser.search('#consultar').click
-    end
-
     def validate_banchile_status!
       unless browser.search(".textoerror:contains('no podemos atenderle')").none?
         raise "Banchile is down"
       end
     end
 
-    def any_deposits?
-      browser.search('table#sin_datos').none?
-    end
-
-    def total_results
-      browser.search("#pager .encabezadotabla:contains(\"Operaciones encontradas\")")
-             .text[/\d+/].to_i
-    end
-
     def deposits_from_txt
-      validate_banchile_status!
-      return [] unless any_deposits?
+      prepare_deposits
       response = RestClient::Request.execute(
         url: COMPANY_DEPOSITS_TXT_URL, method: :post, headers: session_headers,
-        payload: deposits_params(deposit_range[:start], deposit_range[:end]), verify_ssl: false
+        payload: deposits_txt_payload(deposit_range[:start], deposit_range[:end]), verify_ssl: false
       )
       raise "Banchile is down" if response.body.include? "no podemos atenderle"
 
@@ -175,6 +156,14 @@ module BankApi::Clients
     rescue => e
       validate_banchile_status!
       raise e
+    end
+
+    def prepare_deposits
+      RestClient::Request.execute(
+        url: COMPANY_PREPARE_DEPOSITS_URL, method: :post, headers: session_headers,
+        payload: prepare_deposits_payload(deposit_range[:start], deposit_range[:end]),
+        verify_ssl: false
+      )
     end
 
     def split_transactions(transactions_str)
@@ -217,26 +206,48 @@ module BankApi::Clients
       name.to_s.split("DE:").last.to_s.strip
     end
 
-    def deposits_params(from_date, to_date)
+    def base_payload(from_date, to_date)
       {
-        'accion' => 'exportarTxtOperaciones',
         'initDate' => from_date,
         'endDate' => to_date,
-        'ctaCorriente' => 'TODAS',
+        'ctaCorriente' => padded_account,
         'nada' => 'nada'
       }
     end
 
+    def padded_account
+      "0" * (12 - @bdc_account.length) + @bdc_account
+    end
+
+    def prepare_deposits_payload(from_date, to_date)
+      base_payload(from_date, to_date).merge('accion' => 'buscarOperaciones')
+    end
+
+    def deposits_txt_payload(from_date, to_date)
+      base_payload(from_date, to_date).merge('accion' => 'exportarTxtOperaciones')
+    end
+
     def session_headers
       {
-        "Cookie" => "JSESSIONID=#{cookie('JSESSIONID')}; token=#{cookie('token')}",
+        "Pragma" => "no-cache",
+        "Connection" => "keep-alive",
+        "Cache-Control" => "no-cache",
+        "Upgrade-Insecure-Requests" => 1,
         "Content-Type" => "application/x-www-form-urlencoded",
-        "Accept" => "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/" +
-          "apng,*/*;q=0.8",
+        "Origin" => "https://www.empresas.bancochile.cl",
+        "User-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/537.36 " +
+          "(KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36",
+        "Accept" => "text/html,application/xhtml+xml,application/xml;q=0.9," +
+          "image/webp,image/apng,*/*;q=0.8",
         "Accept-Encoding" => "gzip, deflate, br",
-        "Referer" => "https://www.empresas.bancochile.cl/GlosaInternetEmpresaRecibida/" +
-          "RespuestaConsultaRecibidaAction.do"
+        "Cookie" => cookies
       }
+    end
+
+    def cookies
+      selenium_browser.manage.all_cookies.map do |cookie|
+        "#{cookie[:name]}=#{cookie[:value]}"
+      end.join("; ")
     end
 
     def cookie(name)

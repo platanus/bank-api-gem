@@ -13,7 +13,6 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
     )
   end
 
-  let(:params) { double }
   let(:session_headers) { double }
 
   let(:div) { double }
@@ -35,22 +34,17 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
 
   before do
     allow(subject).to receive(:browser).and_return(browser)
-    allow(subject).to receive(:deposits_params).with("01/01/2018", "07/01/2018").and_return(params)
     allow(subject).to receive(:session_headers).and_return(session_headers)
     allow(subject).to receive(:deposit_range).and_return(start: "01/01/2018", end: "07/01/2018")
 
     allow(browser).to receive(:goto)
     allow(browser).to receive(:close)
     allow(browser).to receive(:search).and_return(div)
-    allow(browser).to receive(:search).with('table#sin_datos').and_return([])
     allow(browser).to receive(:search)
       .with(".textoerror:contains('no podemos atenderle')").and_return(error_div)
     allow(error_div).to receive(:none?).and_return(true)
 
-    allow(RestClient::Request).to receive(:execute).with(
-      url: described_class::COMPANY_DEPOSITS_TXT_URL, method: :post, headers: session_headers,
-      payload: params, verify_ssl: false
-    ).and_return(txt_file_response)
+    allow(RestClient::Request).to receive(:execute).and_return(txt_file_response)
 
     allow(div).to receive(:click)
     allow(div).to receive(:set)
@@ -131,26 +125,20 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
     end
 
     context 'with no deposits' do
+      let(:txt_file_response) do
+        double(
+          body: "Fecha; Cta. Origen;Cta. Abono;Nombre Origen;" +
+            "Rut Origen;Banco Origen;Monto;Estado\r\n"
+        )
+      end
+
       before do
         mock_validate_credentials
         mock_site_navigation
-        allow(browser).to receive(:search).with('table#sin_datos').and_return(['div'])
       end
 
       it 'returns empty array' do
         expect(perform).to eq([])
-      end
-    end
-
-    context "with banchile not working" do
-      before do
-        mock_validate_credentials
-        mock_site_navigation
-        allow(error_div).to receive(:none?).and_return(false)
-      end
-
-      it "raises 'Banchile is down'" do
-        expect { perform }.to raise_error("Banchile is down")
       end
     end
 
