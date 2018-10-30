@@ -80,9 +80,7 @@ module BankApi::Clients::BancoSecurity
     end
 
     def extract_client_name(text)
-      parts = text.to_s.split(" De ")
-      parts = text.to_s.split(" DE ") if parts.count == 1
-      return text if parts.count > 2
+      parts = text.to_s.split(/\ DE | De | de /, 2)
       parts.last.to_s.strip
     end
 
