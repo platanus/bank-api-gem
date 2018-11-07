@@ -48,6 +48,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
   let(:first_row) { double }
   let(:second_row) { double }
   let(:table) { [first_row, second_row] }
+  let(:deposits) { [] }
 
   before do
     allow(subject).to receive(:browser).and_return(browser)
@@ -225,7 +226,9 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       end
 
       it 'returns empty array' do
-        expect(perform).to eq([])
+        expect { perform }.to raise_error(
+          BankApi::Deposit::FetchError, "Couldn't fetch deposits"
+        )
       end
     end
 
@@ -243,7 +246,6 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
         before do
           allow(subject).to receive(:deposits_from_txt).and_return(deposits)
           allow(subject).to receive(:total_deposits).and_return(50)
-          allow(subject).to receive(:last_deposit_in_current_page).and_return(50)
         end
 
         it "raises error" do
@@ -259,7 +261,9 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       before do
         mock_validate_credentials
         mock_site_navigation
-        allow(subject).to receive(:any_deposits?).and_return(false)
+        allow(subject).to receive(:deposits_from_txt).and_return(deposits)
+        allow(subject).to receive(:total_deposits).and_return(50)
+        allow(subject).to receive(:any_deposits?).and_return(true)
         expect(browser).to receive(:close)
       end
 

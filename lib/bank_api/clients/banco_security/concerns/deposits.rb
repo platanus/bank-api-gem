@@ -33,7 +33,8 @@ module BankApi::Clients::BancoSecurity
     end
 
     def deposits_from_txt
-      return [] unless any_deposits?
+      wait("") { any_deposits? }
+      raise BankApi::Deposit::FetchError, "Couldn't fetch deposits" unless any_deposits?
       download = browser.download(deposits_txt_url)
       transactions = download.content.split("\n").drop(1).map { |r| r.split("|") }
       format_transactions(transactions)

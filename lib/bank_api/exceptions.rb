@@ -4,6 +4,7 @@ module BankApi
     class InvalidAccountNumber < StandardError; end
   end
   module Deposit
+    class FetchError < StandardError; end
     class QuantityError < StandardError; end
     class PaginationError < StandardError; end
   end
