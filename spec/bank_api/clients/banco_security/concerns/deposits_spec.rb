@@ -108,6 +108,16 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
     end
   end
 
+  context "without deposits" do
+    before { allow(dummy).to receive(:any_deposits?).and_return(false) }
+
+    it "raises error" do
+      expect { dummy.deposits_from_txt }.to raise_error(
+        BankApi::Deposit::FetchError, "Couldn't fetch deposits"
+      )
+    end
+  end
+
   context "with deposits from account details" do
     let(:txt_file) do
       content = <<~DOC
