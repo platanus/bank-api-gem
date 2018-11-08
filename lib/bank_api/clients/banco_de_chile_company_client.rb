@@ -147,7 +147,7 @@ module BankApi::Clients
       prepare_deposits
       response = RestClient::Request.execute(
         url: COMPANY_DEPOSITS_TXT_URL, method: :post, headers: session_headers,
-        payload: deposits_txt_payload(deposit_range[:start], deposit_range[:end]), verify_ssl: false
+        payload: deposits_txt_payload(deposit_range[:start], deposit_range[:end]), verify_ssl: true
       )
       raise "Banchile is down" if response.body.include? "no podemos atenderle"
 
@@ -162,7 +162,7 @@ module BankApi::Clients
       RestClient::Request.execute(
         url: COMPANY_PREPARE_DEPOSITS_URL, method: :post, headers: session_headers,
         payload: prepare_deposits_payload(deposit_range[:start], deposit_range[:end]),
-        verify_ssl: false
+        verify_ssl: true
       )
     end
 
