@@ -4,6 +4,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
   let(:browser) { double(config: { wait_timeout: 5.0, wait_interval: 0.2 }) }
   let(:div) { double(text: 'text') }
   let(:dynamic_card) { double }
+  let(:selenium_browser) { double }
 
   class DummyClass < BankApi::Clients::BaseClient
     include BankApi::Clients::BancoSecurity::Deposits
@@ -51,6 +52,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::Deposits do
     allow(dummy).to receive(:deposits_txt_url).and_return(txt_url)
     allow(dummy).to receive(:deposits_account_details_url).and_return(txt_url)
     allow(dummy).to receive(:any_deposits?).and_return(true)
+    allow(dummy).to receive(:setup_authentication)
 
     allow(browser).to receive(:search).and_return(div)
     allow(browser).to receive(:search).with('.k-pager-info').and_return(page_info)
