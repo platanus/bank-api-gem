@@ -1,7 +1,10 @@
 # coding: utf-8
+require 'rest-client'
 
 module BankApi::Clients::BancoSecurity
   module Deposits
+    SESSION_VALIDATION = "https://www.bancosecurity.cl/empresas/SessionValidation.asp"
+
     def select_deposits_range
       browser.search('.BusquedaPorDefectoRecibida a:contains("búsqueda avanzada")').click
       browser.search('#RadioEntreFechasRecibido').click
@@ -33,11 +36,26 @@ module BankApi::Clients::BancoSecurity
     end
 
     def deposits_from_txt
-      wait("") { any_deposits? }
       raise BankApi::Deposit::FetchError, "Couldn't fetch deposits" unless any_deposits?
+      setup_authentication
       download = browser.download(deposits_txt_url)
       transactions = download.content.split("\n").drop(1).map { |r| r.split("|") }
+      if transactions.empty?
+        raise BankApi::Deposit::FetchError, "Couldn't fetch deposits, received #{download.content}"
+      end
       format_transactions(transactions)
+    end
+
+    def setup_authentication
+      response = RestClient::Request.execute(
+        url: SESSION_VALIDATION, method: :post, headers: session_headers
+      )
+      new_cookies = response.headers[:set_cookie].first.delete(" ").split(";").map do |a|
+        a.split("=")
+      end
+      new_cookies.each do |key, value|
+        selenium_browser.manage.add_cookie(name: key, value: value)
+      end
     end
 
     def deposits_from_account_details
@@ -92,13 +110,33 @@ module BankApi::Clients::BancoSecurity
       end
     end
 
+    def session_headers
+      {
+        "Origin" => "https://www.bancosecurity.cl",
+        "Accept-Encoding" => "gzip, deflate, br",
+        "Accept-Language" => "en-US,en;q=0.9",
+        "User-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/537.36 " +
+          "(KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36",
+        "Accept" => "*/*",
+        "Referer" => "https://www.bancosecurity.cl/ConvivenciaEmpresas/CartolasTEF/Home?" + "
+          tipoTransaccion=Recibidas",
+        "X-Requested-With" => "XMLHttpRequest",
+        "Connection" => "keep-alive",
+        "Content-Length" => "0",
+        "Cookie" => cookies
+      }
+    end
+
+    def cookies
+      selenium_browser.manage.all_cookies.map do |cookie|
+        "#{cookie[:name]}=#{cookie[:value]}"
+      end.join("; ")
+    end
+
     def deposits_txt_url
-      account_number = CGI.escape(selenium_browser.execute_script('return nCuenta'))
-      start_ = CGI.escape("#{deposit_range[:start].strftime('%m/%d/%Y')} 00:00:00")
-      end_ = CGI.escape("#{deposit_range[:end].strftime('%m/%d/%Y')} 00:00:00")
-      "https://www.bancosecurity.cl/ConvivenciaEmpresas/CartolasTEF/Download/" +
-        "CrearTxTRecibidas?numeroCuenta=#{account_number}&monto=0&" +
-        "fechaInicio=#{start_}&fechaFin=#{end_}&estado=1"
+      selenium_browser.execute_script("console.log(DescargarDocumentoTxtRecibidas)")
+      log = selenium_browser.manage.logs.get(:browser).last
+      /url = '(.*)';/.match(log.message).captures.first
     end
 
     def deposits_account_details_url
