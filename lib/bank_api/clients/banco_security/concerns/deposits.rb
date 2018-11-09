@@ -112,17 +112,9 @@ module BankApi::Clients::BancoSecurity
 
     def session_headers
       {
-        "Origin" => "https://www.bancosecurity.cl",
-        "Accept-Encoding" => "gzip, deflate, br",
-        "Accept-Language" => "en-US,en;q=0.9",
         "User-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/537.36 " +
           "(KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36",
         "Accept" => "*/*",
-        "Referer" => "https://www.bancosecurity.cl/ConvivenciaEmpresas/CartolasTEF/Home?" + "
-          tipoTransaccion=Recibidas",
-        "X-Requested-With" => "XMLHttpRequest",
-        "Connection" => "keep-alive",
-        "Content-Length" => "0",
         "Cookie" => cookies
       }
     end
