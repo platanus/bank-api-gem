@@ -34,13 +34,13 @@ module BankApi::Clients
       ].any?(&:nil?)
     end
 
-    def get_balance(account_number)
+    def get_balance(options)
       login
       goto_balance
-      select_account(account_number)
+      select_account(options[:account_number])
       click_fetch_balance_button
       {
-        account_number: account_number,
+        account_number: options[:account_number],
         available_balance: money_to_i(read_balance(:available)),
         countable_balance: money_to_i(read_balance(:countable))
       }

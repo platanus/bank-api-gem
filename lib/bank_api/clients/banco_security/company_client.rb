@@ -30,11 +30,11 @@ module BankApi::Clients::BancoSecurity
       :security
     end
 
-    def get_balance(account_number)
+    def get_balance(options)
       login
-      goto_company_dashboard
+      goto_company_dashboard(options[:rut] || @company_rut)
       goto_balance
-      find_account_balance(account_number)
+      find_account_balance(options[:account_number])
     ensure
       browser.close
     end

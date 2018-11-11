@@ -68,7 +68,7 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
   def mock_get_balance_navigation
     allow(subject).to receive(:login)
     allow(subject).to receive(:goto_balance)
-    allow(subject).to receive(:select_account).with(account_number)
+    allow(subject).to receive(:select_account).with(options[:account_number])
     allow(subject).to receive(:click_fetch_balance_button)
   end
 
@@ -191,7 +191,11 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
   describe 'get_balance' do
     let(:search_countable) { double }
     let(:search_available) { double }
-    let(:account_number) { 123456789 }
+    let(:options) do
+      {
+        account_number: 123456789
+      }
+    end
 
     before do
       mock_validate_credentials
@@ -208,11 +212,11 @@ RSpec.describe BankApi::Clients::BancoDeChileCompanyClient do
 
     it 'returns the balance hash' do
       expect(subject).to receive(:validate_credentials)
-      res = subject.get_account_balance(account_number)
+      res = subject.get_account_balance(options)
       expect(res.keys).to include(:account_number, :available_balance, :countable_balance)
       expect(res[:available_balance]).to eq(445070)
       expect(res[:countable_balance]).to eq(400070)
-      expect(res[:account_number]).to eq(account_number)
+      expect(res[:account_number]).to eq(options[:account_number])
     end
 
     context "with navigation error" do
