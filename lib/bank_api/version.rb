@@ -1,3 +1,3 @@
 module BankApi
-  VERSION = "0.7.8"
+  VERSION = "1.0.0"
 end
