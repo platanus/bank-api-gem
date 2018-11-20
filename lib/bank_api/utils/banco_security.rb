@@ -45,5 +45,11 @@ module Utils
     def valid_account_types
       ACCOUNT_TYPES.keys.sort
     end
+
+    def format_rut(rut)
+      verification_digit = rut[-1]
+      without_verification_digit = rut[0..-2].reverse.scan(/.{1,3}/).join(".").reverse
+      "#{without_verification_digit}-#{verification_digit}"
+    end
   end
 end

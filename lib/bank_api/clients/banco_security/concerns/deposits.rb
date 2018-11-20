@@ -57,7 +57,7 @@ module BankApi::Clients::BancoSecurity
         datetime = timezone.local_to_utc(DateTime.parse(t[0]))
         {
           client: t[1],
-          rut: format_rut(t[2]),
+          rut: Utils::BancoSecurity.format_rut(t[2]),
           date: datetime.to_date,
           time: datetime,
           amount: t[5].to_i
@@ -104,12 +104,6 @@ module BankApi::Clients::BancoSecurity
 
     def deposits_account_details_url
       browser.search("a:contains('Descargar TXT')").first.attribute("href")
-    end
-
-    def format_rut(rut)
-      verification_digit = rut[-1]
-      without_verification_digit = rut[0..-2].reverse.scan(/.{1,3}/).join(".").reverse
-      "#{without_verification_digit}-#{verification_digit}"
     end
 
     def total_deposits
