@@ -46,7 +46,7 @@ module BankApi::Clients::BancoSecurity
 
     def format_withdrawal_transactions(transactions)
       transactions.map do |t|
-        datetime = Time.at(t["Fecha"].match(/(\d+)/)[0].to_i / 1000)
+        datetime = Time.at(t["Fecha"].match(/(\d+)/)[0].to_i / 1000).utc
         {
           client: t["NombreDestino"],
           account_bank: t["BancoDestino"],

@@ -89,8 +89,8 @@ RSpec.describe BankApi::Clients::BancoSecurity::Withdrawals do
             account_number: "12345",
             rut: "12.345.678-9",
             email: "oscar@fintual.com",
-            date: Date.new(2018, 11, 11),
-            time: Time.new(2018, 11, 11, 12),
+            date: Date.parse('11/11/2018'),
+            time: Time.parse('11/11/2018 15:00 UTC'),
             amount: 1_000,
             trx_id: 123456789
           }
