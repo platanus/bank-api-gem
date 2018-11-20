@@ -5,6 +5,7 @@ require 'bank_api/clients/base_client'
 require 'bank_api/clients/banco_security/concerns/balance'
 require 'bank_api/clients/banco_security/concerns/deposits'
 require 'bank_api/clients/banco_security/concerns/login'
+require 'bank_api/clients/banco_security/concerns/session'
 require 'bank_api/clients/banco_security/concerns/transfers'
 require 'bank_api/clients/navigation/banco_security/company_navigation'
 require 'bank_api/utils/banco_security'
@@ -16,6 +17,7 @@ module BankApi::Clients::BancoSecurity
     include BankApi::Clients::BancoSecurity::Deposits
     include BankApi::Clients::BancoSecurity::Transfers
     include BankApi::Clients::BancoSecurity::Login
+    include BankApi::Clients::BancoSecurity::Session
 
     def initialize(config = BankApi::Configuration.new)
       @user_rut = config.banco_security.user_rut

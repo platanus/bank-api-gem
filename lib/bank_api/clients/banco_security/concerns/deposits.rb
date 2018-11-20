@@ -3,8 +3,6 @@ require 'rest-client'
 
 module BankApi::Clients::BancoSecurity
   module Deposits
-    SESSION_VALIDATION = "https://www.bancosecurity.cl/empresas/SessionValidation.asp"
-
     def select_deposits_range
       browser.search('.BusquedaPorDefectoRecibida a:contains("búsqueda avanzada")').click
       browser.search('#RadioEntreFechasRecibido').click
@@ -44,18 +42,6 @@ module BankApi::Clients::BancoSecurity
         raise BankApi::Deposit::FetchError, "Couldn't fetch deposits, received #{download.content}"
       end
       format_transactions(transactions)
-    end
-
-    def setup_authentication
-      response = RestClient::Request.execute(
-        url: SESSION_VALIDATION, method: :post, headers: session_headers
-      )
-      new_cookies = response.headers[:set_cookie].first.delete(" ").split(";").map do |a|
-        a.split("=")
-      end
-      new_cookies.each do |key, value|
-        selenium_browser.manage.add_cookie(name: key, value: value)
-      end
     end
 
     def deposits_from_account_details
@@ -108,21 +94,6 @@ module BankApi::Clients::BancoSecurity
         today = timezone.utc_to_local(Time.now).to_date
         { start: (today - @days_to_check), end: today }
       end
-    end
-
-    def session_headers
-      {
-        "User-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/537.36 " +
-          "(KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36",
-        "Accept" => "*/*",
-        "Cookie" => cookies
-      }
-    end
-
-    def cookies
-      selenium_browser.manage.all_cookies.map do |cookie|
-        "#{cookie[:name]}=#{cookie[:value]}"
-      end.join("; ")
     end
 
     def deposits_txt_url
