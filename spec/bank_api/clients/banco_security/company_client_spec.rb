@@ -2,7 +2,7 @@ require 'date'
 require 'spec_helper'
 
 RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
-  let(:txt_file) do
+  let(:deposits_txt_file) do
     double(
       content: "Fecha|Nombre emisor|RUT emisor|Cuenta origen|Banco origen|Monto|Asunto\n" +
         "01/01/2018 01:15|PEPE|123456789|0000000011111|Banco Falabella|1000|\n" +
@@ -12,7 +12,28 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     )
   end
 
-  let(:txt_url) { "https://file.txt" }
+  let(:withdrawals_json_response) do
+    double(
+      body: {
+        "Items" => [
+          {
+            "NumeroTransaccion" => 123456789,
+            "Fecha" => "/Date(1541948400000)/",
+            "RutDestino" => "123456789",
+            "BancoDestino" => "Banco Security",
+            "CuentaDestino" => "12345",
+            "MailDestino" => "oscar@fintual.com",
+            "NombreDestino" => "Óscar Estay",
+            "Monto" => 1_000
+          }
+        ]
+      }.to_json
+    )
+  end
+
+  let(:deposits_txt_url) { "https://deposits_file.txt" }
+
+  let(:page_info) { double(text: "1 - 4 de 4", any?: true) }
 
   let(:div) { double(text: 'text') }
   let(:element) { double }
@@ -20,7 +41,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
   let(:browser) do
     double(
       config: {
-        wait_timeout: 1.0,
+        wait_timeout: 0.5,
         wait_interval: 0.1
       }
     )
@@ -53,14 +74,14 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
   before do
     allow(subject).to receive(:browser).and_return(browser)
     allow(subject).to receive(:selenium_browser).and_return(selenium_browser)
-    allow(subject).to receive(:deposits_txt_url).and_return(txt_url)
+    allow(subject).to receive(:deposits_txt_url).and_return(deposits_txt_url)
 
     allow(browser).to receive(:goto)
     allow(browser).to receive(:close)
     allow(browser).to receive(:search).and_return(div)
     allow(div).to receive(:elements).and_return([element])
     allow(element).to receive(:send_key)
-    allow(browser).to receive(:download).with(txt_url).and_return(txt_file)
+    allow(browser).to receive(:download).with(deposits_txt_url).and_return(deposits_txt_file)
 
     allow(div).to receive(:click)
     allow(div).to receive(:set)
@@ -73,6 +94,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
     mock_wait_for_deposits_fetch
     mock_table
+    mock_wait_for_withdrawals_fetch
   end
 
   def mock_table
@@ -101,6 +123,10 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     allow(subject).to receive(:validate_deposits)
   end
 
+  def mock_validate_withdrawals
+    allow(subject).to receive(:validate_withdrawals)
+  end
+
   def mock_execute_transfer
     allow(subject).to receive(:execute_transfer)
   end
@@ -118,8 +144,23 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     allow(subject).to receive(:get_deposits)
   end
 
+  def mock_get_withdrawals
+    allow(subject).to receive(:get_withdrawals)
+  end
+
   def mock_wait_for_deposits_fetch
     allow(subject).to receive(:wait_for_deposits_fetch)
+  end
+
+  def mock_wait_for_withdrawals_fetch
+    allow(subject).to receive(:wait_for_withdrawals_fetch)
+  end
+
+  def mock_json_fetch
+    allow(RestClient::Request).to receive(:execute).and_return(withdrawals_json_response)
+    allow(dummy).to receive(:deposit_range).and_return({})
+    allow(dummy).to receive(:session_headers)
+    allow(dummy).to receive(:withdrawals_payload)
   end
 
   describe "get_recent_deposits" do
@@ -213,7 +254,7 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
     end
 
     context 'with no deposits' do
-      let(:txt_file) do
+      let(:deposits_txt_file) do
         double(
           content: "Fecha|Nombre emisor|RUT emisor|Cuenta origen|Banco origen|Monto|Asunto"
         )
@@ -280,6 +321,96 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
 
         it "calls browser.close" do
           expect { perform }.to raise_error(StandardError)
+        end
+      end
+    end
+  end
+
+  describe "get_recent_withdrawals" do
+    before do
+      mock_validate_credentials
+      mock_site_navigation
+    end
+
+    it 'validates and returns entries on get_recent_withdrawals' do
+      expect(subject).to receive(:validate_credentials)
+      expect(subject).to receive(:get_withdrawals).and_return(
+        [
+          {
+            client: "Óscar Estay",
+            account_bank: "Banco Security",
+            account_number: "12345",
+            rut: "12.345.678-9",
+            email: "oscar@fintual.com",
+            date: Date.new(2018, 11, 11),
+            time: Time.new(2018, 11, 11, 12),
+            amount: 1_000,
+            trx_id: 123456789
+          }
+        ]
+      )
+
+      subject.get_recent_withdrawals
+    end
+
+    context 'validate_credentials implementation' do
+      before do
+        mock_get_withdrawals
+      end
+
+      it "doesn't raise NotImplementedError" do
+        expect { subject.get_recent_withdrawals }.not_to raise_error(NotImplementedError)
+      end
+    end
+
+    context 'get_withdrawals implementation' do
+      before do
+        mock_validate_credentials
+      end
+
+      it "doesn't raise NotImplementedError" do
+        expect { subject.get_recent_withdrawals }.not_to raise_error(NotImplementedError)
+      end
+    end
+
+    context 'with no withdrawals' do
+      let(:withdrawals_json_response) { double(body: { "Items" => [] }.to_json) }
+
+      before do
+        mock_validate_credentials
+        mock_site_navigation
+        allow(subject).to receive(:any_withdrawals?).and_return(false)
+      end
+
+      it 'raises error' do
+        expect { subject.get_recent_withdrawals }.to raise_error(
+          BankApi::Withdrawal::FetchError, "Couldn't fetch withdrawals"
+        )
+      end
+    end
+
+    describe "#validate_withdrawals" do
+      before do
+        mock_validate_credentials
+        mock_site_navigation
+        mock_wait_for_withdrawals_fetch
+        allow(subject).to receive(:any_withdrawals?).and_return(true)
+      end
+
+      context "with less withdrawals" do
+        let(:withdrawals) { [{}] * 30 }
+
+        before do
+          allow(subject).to receive(:withdrawals_from_json).and_return(withdrawals)
+          allow(subject).to receive(:total_withdrawals).and_return(50)
+          allow(subject).to receive(:last_withdrawal_in_current_page).and_return(50)
+        end
+
+        it "raises error" do
+          expect { subject.get_recent_withdrawals }.to raise_error(
+            BankApi::Withdrawal::QuantityError, "Expected 50 withdrawals," +
+              " got 30."
+          )
         end
       end
     end

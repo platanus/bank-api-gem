@@ -71,6 +71,22 @@ module BankApi::Clients::Navigation
         wait("a.clickable:contains(\"#{account_number}\")").click
       end
 
+      def goto_withdrawals
+        goto_frame query: '#topFrame'
+        selenium_browser.execute_script(
+          "MM_goToURL('parent.frames[\\'topFrame\\']','../menu/MenuTopTransferencias.asp'," +
+            "'parent.frames[\\'leftFrame\\']','../menu/MenuTransferencias.asp'," +
+            "'parent.frames[\\'mainFrame\\']','../../../noticias/transferencias.asp');"
+        )
+        selenium_browser.execute_script(
+          "MM_goToURL('parent.frames[\\'mainFrame\\']'," +
+            "'/empresas/RedirectConvivencia.asp?urlRedirect=CartolasTEF/Home/Index')"
+        )
+        goto_frame query: '#mainFrame'
+        goto_frame query: 'iframe[name="central"]', should_reset: false
+        wait('a.k-link:contains("Enviadas")').click
+      end
+
       def goto_transfer_form
         goto_frame query: '#topFrame'
         selenium_browser.execute_script(
