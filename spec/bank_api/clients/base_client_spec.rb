@@ -14,6 +14,10 @@ RSpec.describe BankApi::Clients::BaseClient do
     allow(subject).to receive(:get_deposits).and_return([])
   end
 
+  def mock_get_withdrawals
+    allow(subject).to receive(:get_withdrawals).and_return([])
+  end
+
   def mock_validate_transfer_missing_data
     allow(subject).to receive(:validate_transfer_missing_data)
   end
@@ -44,6 +48,20 @@ RSpec.describe BankApi::Clients::BaseClient do
     end
   end
 
+  context "get_recent_withdrawals" do
+    before do
+      mock_validate_credentials
+      mock_get_withdrawals
+    end
+
+    it 'validates and returns entries on get_recent_withdrawals' do
+      expect(subject).to receive(:validate_credentials)
+      expect(subject).to receive(:get_withdrawals)
+
+      subject.get_recent_withdrawals
+    end
+  end
+
   context 'without validate_credentials implementation on get_recent_deposits' do
     before do
       mock_get_deposits
@@ -54,6 +72,16 @@ RSpec.describe BankApi::Clients::BaseClient do
     end
   end
 
+  context 'without validate_credentials implementation on get_recent_withdrawals' do
+    before do
+      mock_get_deposits
+    end
+
+    it 'raises NotImplementedError' do
+      expect { subject.get_recent_withdrawals }.to raise_error(NotImplementedError)
+    end
+  end
+
   context 'without get_deposits implementation' do
     before do
       mock_validate_credentials
@@ -61,6 +89,16 @@ RSpec.describe BankApi::Clients::BaseClient do
 
     it 'raises NotImplementedError' do
       expect { subject.get_recent_deposits }.to raise_error(NotImplementedError)
+    end
+  end
+
+  context 'without get_withdrawals implementation' do
+    before do
+      mock_validate_credentials
+    end
+
+    it 'raises NotImplementedError' do
+      expect { subject.get_recent_withdrawals }.to raise_error(NotImplementedError)
     end
   end
 

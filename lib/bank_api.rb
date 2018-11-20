@@ -38,6 +38,10 @@ module BankApi
       company_instance.get_recent_deposits(options)
     end
 
+    def self.get_recent_company_withdrawals
+      company_instance.get_recent_withdrawals
+    end
+
     def self.company_transfer(transfer_data)
       company_instance.transfer(transfer_data)
     end
