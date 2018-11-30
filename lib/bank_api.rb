@@ -25,6 +25,10 @@ module BankApi
     Clients::BancoDeChileCompanyClient.new(configuration).get_recent_deposits(options)
   end
 
+  def self.get_bdc_recent_company_withdrawals
+    Clients::BancoDeChileCompanyClient.new(configuration).get_recent_withdrawals
+  end
+
   def self.get_bdc_account_balance(options = {})
     Clients::BancoDeChileCompanyClient.new(configuration).get_account_balance(options)
   end
