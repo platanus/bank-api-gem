@@ -2,13 +2,17 @@ require 'rest-client'
 require 'timezone'
 
 require 'bank_api/clients/base_client'
+require 'bank_api/utils/banco_de_chile'
 
 module BankApi::Clients
   class BancoDeChileCompanyClient < BaseClient
     COMPANY_LOGIN_URL = 'https://www.empresas.bancochile.cl/cgi-bin/navega?pagina=enlinea/login_fus'
     COMPANY_DEPOSITS_URL = 'https://www.empresas.bancochile.cl/GlosaInternetEmpresaRecibida/ConsultaRecibidaAction.do'
+    COMPANY_WITHDRAWALS_URL = 'https://www.empresas.bancochile.cl/TefMasivasWEB/consulta.do?accion=consulta&vacio=0'
     COMPANY_PREPARE_DEPOSITS_URL = 'https://www.empresas.bancochile.cl/GlosaInternetEmpresaRecibida/RespuestaConsultaRecibidaAction.do'
+    COMPANY_PREPARE_WITHDRAWALS_URL = 'https://www.empresas.bancochile.cl/TefMasivasWEB/consulta.do'
     COMPANY_DEPOSITS_TXT_URL = 'https://www.empresas.bancochile.cl/GlosaInternetEmpresaRecibida/RespuestaConsultaRecibidaAction.do'
+    COMPANY_WITHDRAWALS_TXT_URL = 'https://www.empresas.bancochile.cl/TefMasivasWEB/consulta.do'
     COMPANY_ACCOUNT_DEPOSITS_URL = 'https://www.empresas.bancochile.cl/CCOLSaldoMovimientosWEB/selectorCuentas.do?accion=initSelectorCuentas&cuenta=001642711701&moneda=CTD#page=page-1'
     COMPANY_CC_BALANCE_URL = 'https://www.empresas.bancochile.cl/CCOLDerivadorWEB/selectorCuentas.do?accion=initSelectorCuentas&opcion=saldos&moduloProducto=CC'
 
@@ -89,6 +93,14 @@ module BankApi::Clients
       browser.close
     end
 
+    def get_withdrawals
+      login
+
+      get_withdrawals_from_transfers_section
+    ensure
+      browser.close
+    end
+
     def get_deposits_from_balance_section
       goto_account_deposits
       account_deposits_from_txt
@@ -97,6 +109,11 @@ module BankApi::Clients
     def get_deposits_from_transfers_section
       goto_deposits
       deposits_from_txt
+    end
+
+    def get_withdrawals_from_transfers_section
+      goto_withdrawals
+      withdrawals_from_txt
     end
 
     def login
@@ -129,6 +146,10 @@ module BankApi::Clients
       browser.goto COMPANY_DEPOSITS_URL
     end
 
+    def goto_withdrawals
+      browser.goto COMPANY_WITHDRAWALS_URL
+    end
+
     def account_deposits_from_txt
       url = browser.search("#expoDato_child > a:nth-child(3)").attribute(:href)
       result = browser.download(url)
@@ -147,12 +168,11 @@ module BankApi::Clients
       prepare_deposits
       response = RestClient::Request.execute(
         url: COMPANY_DEPOSITS_TXT_URL, method: :post, headers: session_headers,
-        payload: deposits_txt_payload(deposit_range[:start], deposit_range[:end]), verify_ssl: true
+        payload: deposits_txt_payload(date_range[:start], date_range[:end]), verify_ssl: true
       )
       raise "Banchile is down" if response.body.include? "no podemos atenderle"
-
-      transactions = split_transactions(response.body)
-      format_transactions(transactions)
+      transactions = split_deposit_transactions(response.body)
+      format_deposit_transactions(transactions)
     rescue => e
       validate_banchile_status!
       raise e
@@ -161,18 +181,43 @@ module BankApi::Clients
     def prepare_deposits
       RestClient::Request.execute(
         url: COMPANY_PREPARE_DEPOSITS_URL, method: :post, headers: session_headers,
-        payload: prepare_deposits_payload(deposit_range[:start], deposit_range[:end]),
+        payload: prepare_deposits_payload(date_range[:start], date_range[:end]),
         verify_ssl: true
       )
     end
 
-    def split_transactions(transactions_str)
+    def withdrawals_from_txt
+      prepare_withdrawals
+      response = RestClient::Request.execute(
+        url: COMPANY_WITHDRAWALS_TXT_URL, method: :post, headers: session_headers,
+        payload: withdrawals_txt_payload(date_range[:start], date_range[:end])
+      )
+      raise "Banchile is down" if response.body.include? "no podemos atenderle"
+      transactions = split_withdrawal_transactions(response.body)
+      format_withdrawal_transactions(transactions)
+    rescue => e
+      validate_banchile_status!
+      raise e
+    end
+
+    def prepare_withdrawals
+      RestClient::Request.execute(
+        url: COMPANY_PREPARE_WITHDRAWALS_URL, method: :post, headers: session_headers,
+        payload: prepare_withdrawals_payload(date_range[:start], date_range[:end])
+      )
+    end
+
+    def split_deposit_transactions(transactions_str)
       transactions_str.delete("\r").split("\n").drop(1).map { |r| r.split(";") }.select do |t|
         t[7] == "Aprobada"
       end
     end
 
-    def format_transactions(transactions)
+    def split_withdrawal_transactions(transactions_str)
+      transactions_str.delete("\r").split("\n")
+    end
+
+    def format_deposit_transactions(transactions)
       transactions.map do |t|
         {
           client: format_client_name(t[3]),
@@ -180,6 +225,18 @@ module BankApi::Clients
           date: Date.parse(t[0]),
           time: nil,
           amount: t[6].to_i
+        }
+      end
+    end
+
+    def format_withdrawal_transactions(transactions)
+      transactions.map do |t|
+        {
+          rut: Utils::BancoDeChile.format_rut(t[25..34]),
+          client: format_client_name(t[35..64].strip),
+          account_number: t[65..82].strip,
+          amount: t[93..103].to_i,
+          email: t[166..216].strip
         }
       end
     end
@@ -206,7 +263,27 @@ module BankApi::Clients
       name.to_s.split("DE:").last.to_s.strip
     end
 
-    def base_payload(from_date, to_date)
+    def padded_account
+      "0" * (12 - @bdc_account.length) + @bdc_account
+    end
+
+    def prepare_deposits_payload(from_date, to_date)
+      base_deposits_payload(from_date, to_date).merge('accion' => 'buscarOperaciones')
+    end
+
+    def deposits_txt_payload(from_date, to_date)
+      base_deposits_payload(from_date, to_date).merge('accion' => 'exportarTxtOperaciones')
+    end
+
+    def prepare_withdrawals_payload(from_date, to_date)
+      base_withdrawals_payload(from_date, to_date).merge('accion' => 'consulta')
+    end
+
+    def withdrawals_txt_payload(from_date, to_date)
+      base_withdrawals_payload(from_date, to_date).merge('accion' => 'exportarTxt')
+    end
+
+    def base_deposits_payload(from_date, to_date)
       {
         'initDate' => from_date,
         'endDate' => to_date,
@@ -215,16 +292,21 @@ module BankApi::Clients
       }
     end
 
-    def padded_account
-      "0" * (12 - @bdc_account.length) + @bdc_account
-    end
-
-    def prepare_deposits_payload(from_date, to_date)
-      base_payload(from_date, to_date).merge('accion' => 'buscarOperaciones')
-    end
-
-    def deposits_txt_payload(from_date, to_date)
-      base_payload(from_date, to_date).merge('accion' => 'exportarTxtOperaciones')
+    def base_withdrawals_payload(from_date, to_date)
+      {
+        "llavePre" => "",
+        "llaveIns" => "",
+        "rutIns" => "",
+        "pag" => "",
+        "campo" => "",
+        'initDate' => from_date,
+        'endDate' => to_date,
+        "cuentaCargo" => padded_account,
+        "destinatario" => "",
+        "operacion" => "",
+        "estado" => "12",
+        'nada' => 'nada'
+      }
     end
 
     def session_headers
@@ -254,8 +336,8 @@ module BankApi::Clients
       selenium_browser.manage.cookie_named(name)[:value]
     end
 
-    def deposit_range
-      @deposit_range ||= begin
+    def date_range
+      @date_range ||= begin
         timezone = Timezone['America/Santiago']
         today = timezone.utc_to_local(Time.now).to_date
         { start: (today - @days_to_check).strftime("%d/%m/%Y"), end: today.strftime("%d/%m/%Y") }
