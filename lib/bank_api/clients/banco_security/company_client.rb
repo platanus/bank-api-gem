@@ -5,7 +5,9 @@ require 'bank_api/clients/base_client'
 require 'bank_api/clients/banco_security/concerns/balance'
 require 'bank_api/clients/banco_security/concerns/deposits'
 require 'bank_api/clients/banco_security/concerns/login'
+require 'bank_api/clients/banco_security/concerns/session'
 require 'bank_api/clients/banco_security/concerns/transfers'
+require 'bank_api/clients/banco_security/concerns/withdrawals'
 require 'bank_api/clients/navigation/banco_security/company_navigation'
 require 'bank_api/utils/banco_security'
 
@@ -14,8 +16,10 @@ module BankApi::Clients::BancoSecurity
     include BankApi::Clients::Navigation::BancoSecurity::CompanyNavigation
     include BankApi::Clients::BancoSecurity::Balance
     include BankApi::Clients::BancoSecurity::Deposits
+    include BankApi::Clients::BancoSecurity::Withdrawals
     include BankApi::Clients::BancoSecurity::Transfers
     include BankApi::Clients::BancoSecurity::Login
+    include BankApi::Clients::BancoSecurity::Session
 
     def initialize(config = BankApi::Configuration.new)
       @user_rut = config.banco_security.user_rut
@@ -48,6 +52,18 @@ module BankApi::Clients::BancoSecurity
       end
 
       get_deposits_from_transfers_section
+    ensure
+      browser.close
+    end
+
+    def get_withdrawals
+      login
+      goto_company_dashboard
+      goto_withdrawals
+      select_withdrawals_range
+      withdrawals = withdrawals_from_json
+      validate_withdrawals(withdrawals) unless withdrawals.empty?
+      withdrawals
     ensure
       browser.close
     end

@@ -4,6 +4,7 @@ require 'selenium-webdriver'
 require 'bank_api/exceptions'
 require 'bank_api/sign_deposits'
 require 'bank_api/values/deposit_entry'
+require 'bank_api/values/withdrawal_entry'
 
 module BankApi::Clients
   class BaseClient
@@ -13,12 +14,17 @@ module BankApi::Clients
 
     def get_recent_deposits(options = {})
       validate_credentials
-      parse_entries(get_deposits(options))
+      parse_deposit_entries(get_deposits(options))
     end
 
     def get_account_balance(options)
       validate_credentials
       get_balance(options)
+    end
+
+    def get_recent_withdrawals
+      validate_credentials
+      parse_withdrawal_entries(get_withdrawals)
     end
 
     def transfer(transfer_data)
@@ -52,6 +58,10 @@ module BankApi::Clients
     end
 
     def get_balance(_options = {})
+      raise NotImplementedError
+    end
+
+    def get_withdrawals
       raise NotImplementedError
     end
 
@@ -126,7 +136,7 @@ module BankApi::Clients
       browser.goto(frame: frame)
     end
 
-    def parse_entries(entries)
+    def parse_deposit_entries(entries)
       deposit_entries = entries.map do |entry|
         BankApi::Values::DepositEntry.new(
           entry[:amount],
@@ -138,6 +148,22 @@ module BankApi::Clients
         )
       end
       BankApi::SignDeposits.sign(deposit_entries)
+    end
+
+    def parse_withdrawal_entries(entries)
+      entries.map do |entry|
+        BankApi::Values::WithdrawalEntry.new(
+          entry[:amount],
+          entry[:date],
+          entry[:time],
+          entry[:rut],
+          entry[:client],
+          entry[:account_number],
+          entry[:account_bank],
+          entry[:trx_id],
+          bank_name
+        )
+      end
     end
   end
 end

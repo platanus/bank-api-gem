@@ -3,8 +3,6 @@ require 'rest-client'
 
 module BankApi::Clients::BancoSecurity
   module Deposits
-    SESSION_VALIDATION = "https://www.bancosecurity.cl/empresas/SessionValidation.asp"
-
     def select_deposits_range
       browser.search('.BusquedaPorDefectoRecibida a:contains("búsqueda avanzada")').click
       browser.search('#RadioEntreFechasRecibido').click
@@ -46,18 +44,6 @@ module BankApi::Clients::BancoSecurity
       format_transactions(transactions)
     end
 
-    def setup_authentication
-      response = RestClient::Request.execute(
-        url: SESSION_VALIDATION, method: :post, headers: session_headers
-      )
-      new_cookies = response.headers[:set_cookie].first.delete(" ").split(";").map do |a|
-        a.split("=")
-      end
-      new_cookies.each do |key, value|
-        selenium_browser.manage.add_cookie(name: key, value: value)
-      end
-    end
-
     def deposits_from_account_details
       data = browser.download(
         deposits_account_details_url
@@ -71,7 +57,7 @@ module BankApi::Clients::BancoSecurity
         datetime = timezone.local_to_utc(DateTime.parse(t[0]))
         {
           client: t[1],
-          rut: format_rut(t[2]),
+          rut: Utils::BancoSecurity.format_rut(t[2]),
           date: datetime.to_date,
           time: datetime,
           amount: t[5].to_i
@@ -110,21 +96,6 @@ module BankApi::Clients::BancoSecurity
       end
     end
 
-    def session_headers
-      {
-        "User-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/537.36 " +
-          "(KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36",
-        "Accept" => "*/*",
-        "Cookie" => cookies
-      }
-    end
-
-    def cookies
-      selenium_browser.manage.all_cookies.map do |cookie|
-        "#{cookie[:name]}=#{cookie[:value]}"
-      end.join("; ")
-    end
-
     def deposits_txt_url
       selenium_browser.execute_script("console.log(DescargarDocumentoTxtRecibidas)")
       log = selenium_browser.manage.logs.get(:browser).last
@@ -133,12 +104,6 @@ module BankApi::Clients::BancoSecurity
 
     def deposits_account_details_url
       browser.search("a:contains('Descargar TXT')").first.attribute("href")
-    end
-
-    def format_rut(rut)
-      verification_digit = rut[-1]
-      without_verification_digit = rut[0..-2].reverse.scan(/.{1,3}/).join(".").reverse
-      "#{without_verification_digit}-#{verification_digit}"
     end
 
     def total_deposits
