@@ -93,9 +93,7 @@ module BankApi::Clients::BancoSecurity
     def get_deposits_from_transfers_section
       goto_deposits
       select_deposits_range
-      deposits = deposits_from_txt
-      validate_deposits(deposits) unless deposits.empty?
-      deposits
+      deposits_from_txt
     end
 
     def get_deposits_from_balance_section(account_number)

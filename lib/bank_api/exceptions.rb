@@ -6,7 +6,6 @@ module BankApi
   end
   module Deposit
     class FetchError < StandardError; end
-    class QuantityError < StandardError; end
   end
   module Withdrawal
     class FetchError < StandardError; end
