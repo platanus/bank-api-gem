@@ -106,25 +106,11 @@ module BankApi::Clients::BancoSecurity
       browser.search("a:contains('Descargar TXT')").first.attribute("href")
     end
 
-    def total_deposits
-      pages_info = wait(".k-pager-info")
-      matches = pages_info.text.match(/(\d+)[a-z\s-]+(\d+)[a-z\s-]+(\d+)/)
-      matches[3].to_i
-    end
-
     def any_deposits?
       browser.search(
         "#gridPrincipalRecibidas " \
         ".k-label:contains('No se han encontrado transacciones para la búsqueda seleccionada.')"
       ).none?
-    end
-
-    def validate_deposits(deposits)
-      total_deposits_ = total_deposits
-      unless deposits.count == total_deposits_
-        raise BankApi::Deposit::QuantityError, "Expected #{total_deposits_} deposits," +
-          " got #{deposits.count}."
-      end
     end
 
     def timezone

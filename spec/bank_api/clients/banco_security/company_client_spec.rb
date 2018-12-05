@@ -273,31 +273,6 @@ RSpec.describe BankApi::Clients::BancoSecurity::CompanyClient do
       end
     end
 
-    describe "#validate_deposits" do
-      before do
-        mock_validate_credentials
-        mock_site_navigation
-        mock_wait_for_deposits_fetch
-        allow(subject).to receive(:any_deposits?).and_return(true)
-      end
-
-      context "with less deposits" do
-        let(:deposits) { [{}] * 30 }
-
-        before do
-          allow(subject).to receive(:deposits_from_txt).and_return(deposits)
-          allow(subject).to receive(:total_deposits).and_return(50)
-        end
-
-        it "raises error" do
-          expect { perform }.to raise_error(
-            BankApi::Deposit::QuantityError, "Expected 50 deposits," +
-              " got 30."
-          )
-        end
-      end
-    end
-
     describe "ensure browser.close" do
       before do
         mock_validate_credentials
