@@ -1,6 +1,6 @@
 # BankApi
 
-BankApi is a gem that wraps chilean banks web operations. For now, it can get recent deposits on Banco de Chile accounts.
+BankApi is a gem that wraps chilean banks web operations. For now, it can get recent deposits on Banco de Chile and Banco Security accounts.
 
 ## Installation
 
